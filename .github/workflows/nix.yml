@@ -1,0 +1,112 @@
+name: Build using `bix` from nixpkgs
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    - cron: '02 02 * * *'
+
+jobs:
+  check:
+    name: nixpkgs (${{ matrix.system }})
+    runs-on: ${{ matrix.runner_label }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags:
+          - system: aarch64-linux
+            runner_label: ubuntu-24.04-arm
+            cmake_flags:
+          - system: x86_64-darwin
+            runner_label: macos-13
+            cmake_flags: -DWITH_USDT=OFF
+          - system: aarch64-darwin
+            runner_label: macos-14
+            cmake_flags: -DWITH_USDT=OFF
+
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          repository: bitcoin-dev-tools/bix
+          fetch-depth: 1
+
+      - name: Checkout Bitcoin Repo
+        uses: actions/checkout@v4
+        with:
+          repository: bitcoin/bitcoin
+          path: bitcoin
+          fetch-depth: 1
+
+      - name: Set up ccache key
+        id: ccache_key
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "key=ccache-${{ matrix.system }}-pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=ccache-${{ matrix.system }}-master" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ccache-${{ matrix.system }}-master
+            ccache-${{ matrix.system }}-
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+          extra-conf: lazy-trees = true
+
+      - name: Set Up Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: nix-dev-shell
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Run `nix flake check`
+        run: nix flake check
+
+      - name: Build bitcoind
+        run: |
+          nix develop --command bash -c "
+            set -eux
+            export CCACHE_DIR=${{ env.CCACHE_DIR }}
+            cd bitcoin
+            cmake -B build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache --preset dev-mode ${{ matrix.cmake_flags }}
+            cmake --build build -j$(nproc)
+            ccache --show-stats
+          "
+
+      - name: Test bitcoind
+        run: |
+          nix develop --command bash -c "
+            set -eux
+            cd bitcoin
+            ctest --test-dir build -j $(nproc)
+          "
+
+      - name: Run functional tests
+        run: |
+          nix develop --command bash -c "
+            set -eux
+            cd bitcoin
+            ./build/test/functional/test_runner.py --ci --extended -j $(nproc) --combinedlogslen=99999999 --quiet --tmpdirprefix . --timeout-factor=8
+          "
