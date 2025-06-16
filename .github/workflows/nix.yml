@@ -51,15 +51,6 @@ jobs:
           path: bitcoin
           fetch-depth: 1
 
-      - name: Set up ccache key
-        id: ccache_key
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "key=ccache-${{ matrix.system }}-pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "key=ccache-${{ matrix.system }}-master" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: configure processors
         run: |
           if command -v nproc &> /dev/null; then
@@ -72,9 +63,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ steps.ccache_key.outputs.key }}
+          key: ccache-${{ matrix.system }}-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ matrix.system }}-master
             ccache-${{ matrix.system }}-
 
       - name: Install Nix
