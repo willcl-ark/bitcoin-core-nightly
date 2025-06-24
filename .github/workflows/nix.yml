@@ -12,6 +12,8 @@ jobs:
   check:
     name: nixpkgs (${{ matrix.system }})
     runs-on: ${{ matrix.runner_label }}
+    outputs:
+      bitcoin-commit: ${{ steps.bitcoin-commit.outputs.commit }}
 
     permissions:
       id-token: write
@@ -50,6 +52,12 @@ jobs:
           repository: bitcoin/bitcoin
           path: bitcoin
           fetch-depth: 1
+
+      - name: Get Bitcoin commit hash
+        id: bitcoin-commit
+        run: |
+          BITCOIN_COMMIT=$(cd bitcoin && git rev-parse HEAD)
+          echo "commit=$BITCOIN_COMMIT" >> $GITHUB_OUTPUT
 
       - name: configure processors
         run: |
@@ -111,3 +119,30 @@ jobs:
             cd bitcoin
             ./build/test/functional/test_runner.py --ci --extended -j ${{ env.NPROC }} --combinedlogslen=99999999 --quiet --tmpdirprefix . --timeout-factor=8
           "
+
+  notify-failure:
+    if: failure()
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create failure issue
+        run: |
+          BITCOIN_COMMIT="${{ needs.check.outputs.bitcoin-commit }}"
+          BITCOIN_COMMIT_SHORT="${BITCOIN_COMMIT:0:7}"
+
+          gh issue create \
+            --title "Nightly CI Failure - $(date +%Y-%m-%d)" \
+            --body "**Nightly CI Build Failed**
+
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **This Repo Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Triggered by:** ${{ github.event_name }}
+            **Bitcoin Commit:** [\`${BITCOIN_COMMIT_SHORT}\`](https://github.com/bitcoin/bitcoin/commit/${BITCOIN_COMMIT})
+
+            cc: @willcl-ark @fanquake" \
+            --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
