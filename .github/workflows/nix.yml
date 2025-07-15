@@ -121,7 +121,7 @@ jobs:
           "
 
   notify-failure:
-    if: failure()
+    if: failure() || cancelled()
     needs: check
     runs-on: ubuntu-latest
     permissions:
