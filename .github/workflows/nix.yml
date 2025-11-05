@@ -33,11 +33,11 @@ jobs:
             cmake_flags:
             build_name: aarch64-linux-nix
           - system: x86_64-darwin
-            runner_label: macos-13
+            runner_label: macos-15-intel
             cmake_flags: -DWITH_USDT=OFF
             build_name: x86_64-darwin-nix
           - system: aarch64-darwin
-            runner_label: macos-14
+            runner_label: macos-latest
             cmake_flags: -DWITH_USDT=OFF
             build_name: aarch64-darwin-nix
 
