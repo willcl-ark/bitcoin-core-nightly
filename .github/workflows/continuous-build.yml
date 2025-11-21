@@ -1,0 +1,14 @@
+name: Continuous Build and Test
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  call-build-and-test-workflow:
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      ctest_model: Continuous
