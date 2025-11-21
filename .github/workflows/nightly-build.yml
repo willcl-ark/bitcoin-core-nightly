@@ -9,4 +9,4 @@ jobs:
   call-build-and-test-workflow:
     uses: ./.github/workflows/build-and-test.xml
     with:
-      ctest_model Nightly
+      ctest_model: Nightly
