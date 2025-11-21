@@ -1,43 +1,50 @@
-cmake_host_system_information(RESULT HOST_NAME QUERY HOSTNAME)
-
-include(ProcessorCount)
-ProcessorCount(n)
-if(NOT n EQUAL 0)
-  set(CTEST_BUILD_FLAGS -j${n})
-  set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${n})
+if(NOT DEFINED WITH_UPDATE)
+  set(WITH_UPDATE FALSE)
+endif()
+if(NOT DEFINED MODEL)
+  set(MODEL "Experimental")
 endif()
 
-set( CTEST_SITE ${HOST_NAME})
+cmake_host_system_information(RESULT HOST_NAME QUERY HOSTNAME)
+set(CTEST_SITE ${HOST_NAME})
+
+cmake_host_system_information(RESULT nproc QUERY NUMBER_OF_LOGICAL_CORES)
+if(NOT nproc)
+  message(WARNING "Could not determine number of logical cores; defaulting to 1.")
+  set(nproc 1)
+endif()
+
 if(NOT CTEST_BUILD_NAME)
-  set(CTEST_BUILD_NAME "bix-nix-flake")
+  set(CTEST_BUILD_NAME "${CMAKE_HOST_SYSTEM_PROCESSOR}_${CMAKE_SYSTEM_NAME}-nix")
 endif()
 if(NOT CTEST_SOURCE_DIRECTORY)
-  set( CTEST_SOURCE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" )
+  set(CTEST_SOURCE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
 endif()
-set( CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
-set(CTEST_CMAKE_GENERATOR "Ninja")
+if(NOT CTEST_BINARY_DIRECTORY)
+  set(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
+endif()
 
-# Optionally, set files to upload as "NOTES" for the build
+set(CTEST_CMAKE_GENERATOR "Ninja")
 set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
 
-# ctest_start will take the name of the mode like the
-# -D command does
-ctest_start("Experimental")
+find_program(CTEST_GIT_COMMAND "git")
+if(WITH_UPDATE AND NOT CTEST_GIT_COMMAND)
+  message(WARNING "Git not found; skipping update.")
+  set(WITH_UPDATE FALSE)
+endif()
 
-# Attempt to pull updates from version control
-# ctest_update()
+ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
-# Executes the Configure/Generate step
-ctest_configure(
-    BUILD   ${CTEST_BINARY_DIRECTORY}
-    SOURCE  ${CTEST_SOURCE_DIRECTORY}
-)
+ctest_start(${MODEL})
 
-# Execute the build step to capture build information
-ctest_build(BUILD ${CTEST_BINARY_DIRECTORY})
+if(WITH_UPDATE AND CTEST_GIT_COMMAND)
+  ctest_update()
+endif()
 
-# Executing  ctest command
-ctest_test(${ctest_test_args})
+ctest_configure()
 
-# Submit Files to CDash
+ctest_build(PARALLEL_LEVEL ${nproc})
+
+ctest_test(PARALLEL_LEVEL ${nproc})
+
 ctest_submit()
