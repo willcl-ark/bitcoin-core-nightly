@@ -1,111 +1,133 @@
-name: Build using `bix` from nixpkgs
+name: Build and Test Reusable
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+  workflow_call:
+    inputs:
+      ctest_model:
+        required: true
+        type: string
   workflow_dispatch:
-  schedule:
-    - cron: '02 02 * * *'
 
 jobs:
   check:
-    name: nixpkgs (${{ matrix.system }})
+    name: nixpkgs (${{ matrix.system }} - ${{ matrix.config }})
     runs-on: ${{ matrix.runner_label }}
     outputs:
       bitcoin-commit: ${{ steps.bitcoin-commit.outputs.commit }}
-
     permissions:
-      id-token: write
       contents: read
-
     strategy:
       fail-fast: false
       matrix:
         include:
           - system: x86_64-linux
             runner_label: ubuntu-latest
-            cmake_flags:
-            build_name: x86_64-linux-nix
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-default
+            ctest_extra: ""
+            config: default
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-coverage
+            ctest_extra: -DWITH_COVERAGE=ON
+            config: coverage
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-asan
+            ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=ASAN
+            config: asan
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-tsan
+            ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=TSAN
+            config: tsan
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-msan
+            ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=MSAN
+            config: msan
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-ubsan
+            ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=UBSAN
+            config: ubsan
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
-            cmake_flags:
-            build_name: aarch64-linux-nix
+            cmake_flags: ""
+            build_name: aarch64-linux-nix-default
+            ctest_extra: ""
+            config: default
           - system: x86_64-darwin
             runner_label: macos-15-intel
             cmake_flags: -DWITH_USDT=OFF
-            build_name: x86_64-darwin-nix
+            build_name: x86_64-darwin-nix-default
+            ctest_extra: ""
+            config: default
           - system: aarch64-darwin
             runner_label: macos-latest
             cmake_flags: -DWITH_USDT=OFF
-            build_name: aarch64-darwin-nix
-
+            build_name: aarch64-darwin-nix-default
+            ctest_extra: ""
+            config: default
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
-
     steps:
       - name: Checkout Nightly Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: Checkout Bix Repo
         uses: actions/checkout@v4
         with:
           repository: bitcoin-dev-tools/bix
           path: bix
           fetch-depth: 1
-
       - name: Checkout Bitcoin Repo
         uses: actions/checkout@v4
         with:
           repository: willcl-ark/bitcoin
           path: bitcoin
           fetch-depth: 1
-
       - name: Get Bitcoin commit hash
         id: bitcoin-commit
         run: |
           BITCOIN_COMMIT=$(cd bitcoin && git rev-parse HEAD)
           echo "commit=$BITCOIN_COMMIT" >> $GITHUB_OUTPUT
-
       - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ matrix.system }}-${{ github.run_id }}
+          key: ccache-${{ matrix.system }}-${{ matrix.config }}-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ matrix.system }}-
-
+            ccache-${{ matrix.system }}-${{ matrix.config }}-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
         with:
           determinate: true
           extra-conf: lazy-trees = true
-
       - name: Set Up Cachix
         uses: cachix/cachix-action@v14
         with:
           name: nix-dev-shell
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
       - name: Run `nix flake update`
         working-directory: bix
         run: nix flake update
-
       - name: Run `nix flake check`
         working-directory: bix
         run: nix flake check
-
       - name: Build and test
         run: |
           nix develop ./bix --command bash -c "
-            set -eux
-            export CCACHE_DIR=${{ env.CCACHE_DIR }}
-            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }}
-          "
-
+              set -eux
+              export CCACHE_DIR=${{ env.CCACHE_DIR }}
+              ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} ${{ matrix.ctest_extra }} -D CMAKE_ARGS='${{ matrix.cmake_flags }}' -D MODEL='${{ inputs.ctest_model }}'
+            "
   notify-failure:
     if: failure() || cancelled()
     needs: check
@@ -117,17 +139,20 @@ jobs:
         run: |
           BITCOIN_COMMIT="${{ needs.check.outputs.bitcoin-commit }}"
           BITCOIN_COMMIT_SHORT="${BITCOIN_COMMIT:0:7}"
-
+          TITLE="${{ inputs.ctest_model }} CI Failure"
+          if [ "${{ inputs.ctest_model }}" = "Nightly" ]; then
+            TITLE="${{ inputs.ctest_model }} CI Failure - $(date +%Y-%m-%d)"
+          elif [ "${{ inputs.ctest_model }}" = "Continuous" ]; then
+            TITLE="${{ inputs.ctest_model }} CI Failure - ${{ github.sha }}"
+          fi
           gh issue create \
-            --title "Nightly CI Failure - $(date +%Y-%m-%d)" \
-            --body "**Nightly CI Build Failed**
-
+            --title "$TITLE" \
+            --body "**${{ inputs.ctest_model }} CI Build Failed**
             **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             **This Repo Commit:** ${{ github.sha }}
             **Branch:** ${{ github.ref_name }}
             **Triggered by:** ${{ github.event_name }}
             **Bitcoin Commit:** [\`${BITCOIN_COMMIT_SHORT}\`](https://github.com/bitcoin/bitcoin/commit/${BITCOIN_COMMIT})
-
             cc: @willcl-ark @fanquake" \
             --repo ${{ github.repository }}
         env:
