@@ -1,0 +1,12 @@
+name: Nightly Build and Test
+
+on:
+  schedule:
+    - cron: '0 11 * * *' # Run everyday at 11.00 am UTC
+  workflow_dispatch:
+
+jobs:
+  call-build-and-test-workflow:
+    uses: ./.github/workflows/build-and-test.xml
+    with:
+      ctest_model Nightly

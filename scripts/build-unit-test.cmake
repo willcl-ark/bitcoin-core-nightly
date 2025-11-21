@@ -89,6 +89,10 @@ if(WITH_COVERAGE)
 	set(ENV{LDFLAGS} "--coverage")
 endif()
 
+if(MODEL STREQUAL "Nightly" )
+  set (CTEST_NIGHTLY_START_TIME \"11:00:00 UTC\")
+endif()
+
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
 ctest_start(${MODEL})
