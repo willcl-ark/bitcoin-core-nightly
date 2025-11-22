@@ -74,6 +74,12 @@ jobs:
             build_name: aarch64-darwin-nix-default
             ctest_extra: ""
             config: default
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-tidy
+            ctest_extra: -DWITH_CLANG_TIDY=ON
+            config: tidy
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
