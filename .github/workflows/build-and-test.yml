@@ -92,6 +92,12 @@ jobs:
             build_name: aarch64-darwin-nix-cpplint
             ctest_extra: -DWITH_CPPLINT=ON
             config: cpplint
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            build_name: x86_64-linux-nix-iwyu
+            ctest_extra: -DWITH_IWYU=ON
+            config: iwyu
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
