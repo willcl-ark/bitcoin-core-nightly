@@ -80,6 +80,12 @@ jobs:
             build_name: x86_64-linux-nix-tidy
             ctest_extra: -DWITH_CLANG_TIDY=ON
             config: tidy
+          - system: aarch64-linux
+            runner_label: ubuntu-24.04-arm
+            cmake_flags: ""
+            build_name: aarch64-linux-nix-cppcheck
+            ctest_extra: -DWITH_CPP_CHECK=ON
+            config: cppcheck
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
