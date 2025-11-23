@@ -108,7 +108,7 @@ jobs:
       - name: Checkout Bix Repo
         uses: actions/checkout@v4
         with:
-          repository: bitcoin-dev-tools/bix
+          repository: BrandonOdiwuor/bix
           path: bix
           fetch-depth: 1
       - name: Checkout Bitcoin Repo
