@@ -84,7 +84,7 @@ jobs:
             runner_label: ubuntu-24.04-arm
             cmake_flags: ""
             build_name: aarch64-linux-nix-cppcheck
-            ctest_extra: -DWITH_CPP_CHECK=ON
+            ctest_extra: -DWITH_CPPCHECK=ON
             config: cppcheck
           - system: aarch64-darwin
             runner_label: macos-latest

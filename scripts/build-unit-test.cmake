@@ -1,3 +1,4 @@
+# Default options (can be overridden via -D)
 if(NOT DEFINED WITH_UPDATE)
   set(WITH_UPDATE FALSE)
 endif()
@@ -23,6 +24,7 @@ if(NOT DEFINED WITH_IWYU)
   set(WITH_IWYU FALSE)
 endif()
 
+# System information
 cmake_host_system_information(RESULT HOST_NAME QUERY HOSTNAME)
 set(CTEST_SITE ${HOST_NAME})
 
@@ -32,6 +34,7 @@ if(NOT nproc)
   set(nproc 1)
 endif()
 
+# Build and directory setup
 if(NOT CTEST_BUILD_NAME)
   set(CTEST_BUILD_NAME "${CMAKE_HOST_SYSTEM_PROCESSOR}_${CMAKE_SYSTEM_NAME}-nix")
 endif()
@@ -42,6 +45,7 @@ if(NOT CTEST_BINARY_DIRECTORY)
   set(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
 endif()
 
+# Find required programs
 set(CTEST_CMAKE_GENERATOR "Ninja")
 set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
 
@@ -72,7 +76,7 @@ endif()
 find_program(CPPLINT "cpplint")
 if(WITH_CPPLINT AND NOT CPPLINT)
   message(WARNING "cpplint not found; disabling cpplint.")
-  set(WITH_CPPCHECK FALSE)
+  set(WITH_CPPLINT FALSE)
 endif()
 
 find_program(IWYU "iwyu")
@@ -81,6 +85,7 @@ if(WITH_IWYU AND NOT IWYU)
   set(WITH_IWYU FALSE)
 endif()
 
+# Memcheck setup
 set(CTEST_MEMORYCHECK_COMMAND)
 if(WITH_MEMCHECK)
   if(MEMCHECK_TYPE STREQUAL "Valgrind")
@@ -118,6 +123,7 @@ if(WITH_MEMCHECK)
   endif()
 endif()
 
+# Coverage setup
 if(WITH_COVERAGE)
   set(CTEST_COVERAGE_EXTRA_FLAGS "gcov")
   set( ENV{CFLAGS} "--coverage")
@@ -125,6 +131,7 @@ if(WITH_COVERAGE)
 	set(ENV{LDFLAGS} "--coverage")
 endif()
 
+# Collect configure options
 set(CONFIG_OPTIONS)
 if(DEFINED CMAKE_ARGS)
   list(APPEND CONFIG_OPTIONS ${CMAKE_ARGS})
@@ -132,20 +139,22 @@ endif()
 if(WITH_CLANG_TIDY)
   list(APPEND CONFIG_OPTIONS "-DCMAKE_CXX_CLANG_TIDY=${CLANG_TIDY}")
 endif()
-if(WITH_CCPCHECK)
+if(WITH_CPPCHECK)
   list(APPEND CONFIG_OPTIONS "-DCMAKE_CXX_CPPCHECK=${CPPCHECK}")
 endif()
-if(WITH_CCPLINT)
-  list(APPEND CONFIG_OPTIONS "-DCMAKE_CXX_CPPLINT=${CPPCLINT}")
+if(WITH_CPPLINT)
+  list(APPEND CONFIG_OPTIONS "-DCMAKE_CXX_CPPLINT=${CPPLINT}")
 endif()
 if(WITH_IWYU)
   list(APPEND CONFIG_OPTIONS "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=${IWYU}")
 endif()
 
+# Nightly start time
 if(MODEL STREQUAL "Nightly" )
-  set (CTEST_NIGHTLY_START_TIME \"11:00:00 UTC\")
+  set(CTEST_NIGHTLY_START_TIME "11:00:00 UTC")
 endif()
 
+# Start CTest process
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
 ctest_start(${MODEL})
