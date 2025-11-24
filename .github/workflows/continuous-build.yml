@@ -1,14 +1,13 @@
 name: Continuous Build and Test
 
 on:
-  push:
-    branches: [ '*' ]
   pull_request:
     branches: [ master ]
   workflow_dispatch:
 
 jobs:
   call-build-and-test-workflow:
-    uses: ./.github/workflows/build-and-test.yml
+    name: 'test pull request'
+    uses: ./.github/workflows/ci.yml
     with:
       ctest_model: Continuous

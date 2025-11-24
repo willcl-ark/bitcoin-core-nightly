@@ -150,7 +150,12 @@ jobs:
           nix develop ./bix --command bash -c "
               set -eux
               export CCACHE_DIR=${{ env.CCACHE_DIR }}
-              ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} ${{ matrix.ctest_extra }} -D CMAKE_ARGS='${{ matrix.cmake_flags }}' -D MODEL='${{ inputs.ctest_model }}'
+              ctest --verbose -S \
+                ./scripts/build-unit-test.cmake \
+                -DCTEST_SOURCE_DIRECTORY=./bitcoin \
+                -DCTEST_BUILD_NAME=${{ matrix.build_name }} ${{ matrix.ctest_extra }} \
+                -DCMAKE_ARGS='${{ matrix.cmake_flags }}' \
+                -DMODEL='${{ inputs.ctest_model }}'
             "
   notify-failure:
     if: failure() || cancelled()
