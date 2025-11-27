@@ -6,6 +6,9 @@ on:
       ctest_model:
         required: true
         type: string
+      ctest_build_name_suffix:
+        required: false
+        type: string
   workflow_dispatch:
 
 jobs:
@@ -23,79 +26,66 @@ jobs:
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-default
             ctest_extra: ""
             config: default
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-coverage
             ctest_extra: -DWITH_COVERAGE=ON
             config: coverage
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-asan
             ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=ASAN
             config: asan
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-tsan
             ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=TSAN
             config: tsan
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-msan
             ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=MSAN
             config: msan
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-ubsan
             ctest_extra: -DWITH_MEMCHECK=ON -DMEMCHECK_TYPE=UBSAN
             config: ubsan
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             cmake_flags: ""
-            build_name: aarch64-linux-nix-default
             ctest_extra: ""
             config: default
           - system: x86_64-darwin
             runner_label: macos-15-intel
             cmake_flags: -DWITH_USDT=OFF
-            build_name: x86_64-darwin-nix-default
             ctest_extra: ""
             config: default
           - system: aarch64-darwin
             runner_label: macos-latest
             cmake_flags: -DWITH_USDT=OFF
-            build_name: aarch64-darwin-nix-default
             ctest_extra: ""
             config: default
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-tidy
             ctest_extra: -DWITH_CLANG_TIDY=ON
             config: tidy
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             cmake_flags: ""
-            build_name: aarch64-linux-nix-cppcheck
             ctest_extra: -DWITH_CPPCHECK=ON
             config: cppcheck
           - system: aarch64-darwin
             runner_label: macos-latest
             cmake_flags: ""
-            build_name: aarch64-darwin-nix-cpplint
             ctest_extra: -DWITH_CPPLINT=ON
             config: cpplint
           - system: x86_64-linux
             runner_label: ubuntu-latest
             cmake_flags: ""
-            build_name: x86_64-linux-nix-iwyu
             ctest_extra: -DWITH_IWYU=ON
             config: iwyu
     env:
@@ -153,9 +143,10 @@ jobs:
               ctest --verbose -S \
                 ./scripts/build-unit-test.cmake \
                 -DCTEST_SOURCE_DIRECTORY=./bitcoin \
-                -DCTEST_BUILD_NAME=${{ matrix.build_name }} ${{ matrix.ctest_extra }} \
+                -DBUILD_NAME_SUFFIX=${{ matrix.config }}-${{ inputs.ctest_build_name_suffix }} \
+                ${{ matrix.ctest_extra }} \
                 -DCMAKE_ARGS='${{ matrix.cmake_flags }}' \
-                -DMODEL='${{ inputs.ctest_model }}'
+                -DMODEL=${{ inputs.ctest_model }}
             "
   notify-failure:
     if: failure() || cancelled()

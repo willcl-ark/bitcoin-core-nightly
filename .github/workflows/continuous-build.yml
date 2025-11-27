@@ -11,3 +11,4 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       ctest_model: Continuous
+      ctest_build_name_suffix: ${{ github.ref }}
