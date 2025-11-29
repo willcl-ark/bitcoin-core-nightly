@@ -2,7 +2,7 @@ name: Nightly Build and Test
 
 on:
   schedule:
-    - cron: '0 11 * * *' # Run everyday at 11.00 am UTC
+    - cron: '0 7 * * *' # Run everyday at 07.00 am UTC
   workflow_dispatch:
 
 jobs:
@@ -11,3 +11,4 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       ctest_model: Nightly
+      ctest_build_name_suffix: master
