@@ -153,7 +153,7 @@ endif()
 
 # Nightly start time
 if(MODEL STREQUAL "Nightly" )
-  set(CTEST_NIGHTLY_START_TIME "11:00:00 UTC")
+  set(CTEST_NIGHTLY_START_TIME "7:00:00 UTC")
 endif()
 
 # Start CTest process
