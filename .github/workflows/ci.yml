@@ -145,6 +145,7 @@ jobs:
                 -DCTEST_SOURCE_DIRECTORY=./bitcoin \
                 -DBUILD_NAME_SUFFIX=${{ matrix.config }}--${{ inputs.ctest_build_name_suffix }} \
                 ${{ matrix.ctest_extra }} \
+                -DTREAT_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_ARGS='${{ matrix.cmake_flags }}' \
                 -DMODEL=${{ inputs.ctest_model }}
             "

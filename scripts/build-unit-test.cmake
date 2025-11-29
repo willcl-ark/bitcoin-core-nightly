@@ -23,6 +23,9 @@ endif()
 if(NOT DEFINED WITH_IWYU)
   set(WITH_IWYU FALSE)
 endif()
+if(NOT DEFINED TREAT_WARNINGS_AS_ERRORS)
+  set(TREAT_WARNINGS_AS_ERRORS FALSE)
+endif()
 
 # System information
 cmake_host_system_information(RESULT HOST_NAME QUERY HOSTNAME)
@@ -167,7 +170,16 @@ endif()
 
 ctest_configure(OPTIONS "${CONFIG_OPTIONS}")
 
-ctest_build(PARALLEL_LEVEL ${nproc})
+ctest_build(
+  PARALLEL_LEVEL ${nproc}
+  NUMBER_ERRORS build_errors
+  NUMBER_WARNINGS build_warnings
+)
+message(STATUS "Build errors: ${build_errors}, warnings: ${build_warnings}")
+if((build_errors GREATER 0) OR (TREAT_WARNINGS_AS_ERRORS AND (build_warnings GREATER 0)))
+  ctest_submit()
+  message(FATAL_ERROR "Build cancelled")
+endif()
 
 if(WITH_MEMCHECK AND CTEST_MEMORYCHECK_COMMAND)
   ctest_memcheck(PARALLEL_LEVEL ${nproc})
