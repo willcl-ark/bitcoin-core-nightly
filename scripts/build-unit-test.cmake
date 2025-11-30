@@ -84,7 +84,7 @@ if(WITH_CPPLINT AND NOT CPPLINT)
   set(WITH_CPPLINT FALSE)
 endif()
 
-find_program(IWYU "iwyu")
+find_program(IWYU "include-what-you-use")
 if(WITH_IWYU AND NOT IWYU)
   message(WARNING "iwyu not found; disabling iwyu.")
   set(WITH_IWYU FALSE)
