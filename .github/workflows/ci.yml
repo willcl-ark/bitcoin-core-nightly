@@ -93,6 +93,11 @@ jobs:
             cmake_flags: -DENABLE_WALLET=OFF
             ctest_extra: ""
             config: no-wallet
+          - system: x86_64-darwin
+            runner_label: macos-15-intel
+            cmake_flags: -DBUILD_GUI=ON
+            ctest_extra: ""
+            config: build-gui
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
