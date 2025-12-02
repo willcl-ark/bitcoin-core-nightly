@@ -5,8 +5,16 @@ endif()
 if(NOT DEFINED MODEL)
   set(MODEL "Experimental")
 endif()
+if(NOT DEFINED GENERATOR)
+  set(CTEST_CMAKE_GENERATOR "Ninja")
+else()
+  set(CTEST_CMAKE_GENERATOR ${GENERATOR})
+endif()
 if(NOT DEFINED WITH_COVERAGE)
   set(WITH_COVERAGE FALSE)
+endif()
+if(NOT DEFINED WITH_MEMCHECK)
+  set(WITH_MEMCHECK FALSE)
 endif()
 if(NOT DEFINED MEMCHECK_TYPE)
   set(MEMCHECK_TYPE "None")
@@ -27,7 +35,7 @@ if(NOT DEFINED TREAT_WARNINGS_AS_ERRORS)
   set(TREAT_WARNINGS_AS_ERRORS FALSE)
 endif()
 
-# System information
+# basic build setup
 cmake_host_system_information(RESULT HOST_NAME QUERY HOSTNAME)
 set(CTEST_SITE ${HOST_NAME})
 
@@ -37,12 +45,11 @@ if(NOT nproc)
   set(nproc 1)
 endif()
 
-# Build and directory setup
+set(CTEST_BUILD_NAME "${CMAKE_HOST_SYSTEM_PROCESSOR}_${CMAKE_SYSTEM_NAME}")
 if(DEFINED BUILD_NAME_SUFFIX)
-  set(CTEST_BUILD_NAME "${CMAKE_HOST_SYSTEM_PROCESSOR}_${CMAKE_SYSTEM_NAME}-${BUILD_NAME_SUFFIX}")
-else()
-  set(CTEST_BUILD_NAME "${CMAKE_HOST_SYSTEM_PROCESSOR}_${CMAKE_SYSTEM_NAME}")
+  set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}-${BUILD_NAME_SUFFIX}")
 endif()
+
 if(NOT CTEST_SOURCE_DIRECTORY)
   set(CTEST_SOURCE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
 endif()
@@ -50,10 +57,13 @@ if(NOT CTEST_BINARY_DIRECTORY)
   set(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
 endif()
 
-# Find required programs
-set(CTEST_CMAKE_GENERATOR "Ninja")
 set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
 
+if(MODEL STREQUAL "Nightly")
+  set(CTEST_NIGHTLY_START_TIME "7:00:00 UTC")
+endif()
+
+# Find required programs
 find_program(CTEST_GIT_COMMAND "git")
 if(WITH_UPDATE AND NOT CTEST_GIT_COMMAND)
   message(WARNING "Git not found; skipping update.")
@@ -103,23 +113,23 @@ if(WITH_MEMCHECK)
     set(ENV{CXXFLAGS} "-g")
     set(ENV{CFLAGS} "-g")
   elseif(MEMCHECK_TYPE STREQUAL "TSAN")
-    set(ENV{CXXFLAGS} "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -fPIC")
-    set(ENV{CFLAGS} "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -fPIC")
+    set(ENV{CXXFLAGS} "-fsanitize=thread -fno-omit-frame-pointer")
+    set(ENV{CFLAGS} "-fsanitize=thread -fno-omit-frame-pointer")
     set(CTEST_MEMORYCHECK_TYPE "ThreadSanitizer")
     set(CTEST_MEMORYCHECK_COMMAND "true")
   elseif(MEMCHECK_TYPE STREQUAL "MSAN")
-    set(ENV{CXXFLAGS} "-g -O1 -fsanitize=memory -fno-omit-frame-pointer -fPIC")
-    set(ENV{CFLAGS} "-g -O1 -fsanitize=memory -fno-omit-frame-pointer -fPIC")
+    set(ENV{CXXFLAGS} "-fsanitize=memory -fno-omit-frame-pointer")
+    set(ENV{CFLAGS} "-fsanitize=memory -fno-omit-frame-pointer")
     set(CTEST_MEMORYCHECK_TYPE "MemorySanitizer")
     set(CTEST_MEMORYCHECK_COMMAND "true")
   elseif(MEMCHECK_TYPE STREQUAL "ASAN")
-    set(ENV{CXXFLAGS} "-g -O1 -fsanitize=address -fno-omit-frame-pointer -fPIC")
-    set(ENV{CFLAGS} "-g -O1 -fsanitize=address -fno-omit-frame-pointer")
+    set(ENV{CXXFLAGS} "-fsanitize=address -fno-omit-frame-pointer")
+    set(ENV{CFLAGS} "-fsanitize=address -fno-omit-frame-pointer")
     set(CTEST_MEMORYCHECK_TYPE "AddressSanitizer")
     set(CTEST_MEMORYCHECK_COMMAND "true")
   elseif(MEMCHECK_TYPE STREQUAL "UBSAN")
-    set(ENV{CXXFLAGS} "-g -O1 -fsanitize=undefined -fno-omit-frame-pointer -fPIC")
-    set(ENV{CFLAGS} "-g -O1 -fsanitize=undefined -fno-omit-frame-pointer")
+    set(ENV{CXXFLAGS} "-fsanitize=undefined -fno-omit-frame-pointer")
+    set(ENV{CFLAGS} "-fsanitize=undefined -fno-omit-frame-pointer")
     set(CTEST_MEMORYCHECK_TYPE "UndefinedBehaviorSanitizer")
     set(CTEST_MEMORYCHECK_COMMAND "true")
   else()
@@ -154,41 +164,43 @@ if(WITH_IWYU)
   list(APPEND CONFIG_OPTIONS "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=${IWYU}")
 endif()
 
-# Nightly start time
-if(MODEL STREQUAL "Nightly" )
-  set(CTEST_NIGHTLY_START_TIME "7:00:00 UTC")
-endif()
-
 # Start CTest process
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
 ctest_start(${MODEL})
+ctest_submit(PARTS "Notes")
 
 if(WITH_UPDATE AND CTEST_GIT_COMMAND)
   ctest_update()
+  ctest_submit(PARTS "Update")
 endif()
 
 ctest_configure(OPTIONS "${CONFIG_OPTIONS}")
+ctest_submit(PARTS "Configure")
 
 ctest_build(
   PARALLEL_LEVEL ${nproc}
   NUMBER_ERRORS build_errors
   NUMBER_WARNINGS build_warnings
 )
+ctest_submit(PARTS "Build")
+
 message(STATUS "Build errors: ${build_errors}, warnings: ${build_warnings}")
 if((build_errors GREATER 0) OR (TREAT_WARNINGS_AS_ERRORS AND (build_warnings GREATER 0)))
-  ctest_submit()
   message(FATAL_ERROR "Build cancelled")
 endif()
 
 if(WITH_MEMCHECK AND CTEST_MEMORYCHECK_COMMAND)
   ctest_memcheck(PARALLEL_LEVEL ${nproc})
 endif()
+ctest_submit(PARTS "MemCheck")
 
 ctest_test(PARALLEL_LEVEL ${nproc})
+ctest_submit(PARTS "Test")
 
 if(WITH_COVERAGE AND CTEST_COVERAGE_COMMAND)
   ctest_coverage()
+  ctest_submit(PARTS "Coverage")
 endif()
 
-ctest_submit()
+ctest_submit(PARTS "Done")
