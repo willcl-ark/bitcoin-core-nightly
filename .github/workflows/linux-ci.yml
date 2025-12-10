@@ -1,0 +1,85 @@
+name: Build and Test Bitcoin on Linux
+
+on:
+  workflow_call:
+    inputs:
+      ctest_model:
+        required: true
+        type: string
+        default: Experimental
+      ctest_build_name_suffix:
+        required: false
+        type: string
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: ${{ matrix.system }} - ${{ matrix.config }}
+    runs-on: ${{ matrix.runner_label }}
+    outputs:
+      bitcoin-commit: ${{ steps.bitcoin-commit.outputs.commit }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: ""
+            ctest_extra: ""
+            config: default
+            env:
+              CCACHE_DIR: ${{ github.workspace }}/.ccache
+              CC: clang-20
+              CXX: clang++-20
+        project:
+          - name: Bitcoin
+            repository: willcl-ark/bitcoin
+            dependencies: libsqlite3-dev llvm-toolchain-20 capnproto libboost-dev libcapnp-dev libevent-dev
+
+    env: ${{ matrix.env }}
+
+    steps:
+      - name: Checkout Nightly Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Checkout Project Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.project.repository }}
+          fetch-depth: 1
+
+      - name: Get Bitcoin commit hash
+        id: bitcoin-commit
+        run: |
+          BITCOIN_COMMIT=$(cd bitcoin && git rev-parse HEAD)
+          echo "commit=$BITCOIN_COMMIT" >> $GITHUB_OUTPUT
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ matrix.system }}-${{ matrix.config }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ matrix.system }}-${{ matrix.config }}-
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends \
+            build-essential cmake pkgconf python3 \
+            ${{ matrix.dependencies }} ${{ matrix.project.dependencies }}
+
+      - name: Build and test
+        run: |
+            set -eux
+            export CCACHE_DIR=${{ env.CCACHE_DIR }}
+            ctest --verbose -S \
+              ./scripts/build-unit-test.cmake \
+              -DCTEST_SOURCE_DIRECTORY=./bitcoin \
+              -DBUILD_NAME_SUFFIX=${{ matrix.config }}--${{ inputs.ctest_build_name_suffix }} \
+              ${{ matrix.ctest_extra }} \
+              -DTREAT_WARNINGS_AS_ERRORS=ON \
+              -DCMAKE_ARGS='${{ matrix.cmake_flags }}' \
+              -DMODEL=${{ inputs.ctest_model }}
