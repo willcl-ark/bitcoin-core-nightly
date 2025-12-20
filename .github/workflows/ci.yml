@@ -114,8 +114,9 @@ jobs:
       - name: Checkout Bitcoin Repo
         uses: actions/checkout@v4
         with:
-          repository: willcl-ark/bitcoin
-          path: bitcoin
+          repository: brandonodiwuor/bitcoin
+          path: 'bitcoin'
+          branch: 'will-repo-changes'
           fetch-depth: 1
       - name: Get Bitcoin commit hash
         id: bitcoin-commit

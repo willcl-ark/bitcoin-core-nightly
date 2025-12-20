@@ -12,3 +12,9 @@ jobs:
     with:
       ctest_model: Nightly
       ctest_build_name_suffix: master
+  call-linux-build-and-test-workflow:
+    name: 'test linux nightly'
+    uses: ./.github/workflows/linux-ci.yml
+    with:
+      ctest_model: Nightly
+      ctest_build_name_suffix: master
