@@ -116,7 +116,7 @@ jobs:
         with:
           repository: brandonodiwuor/bitcoin
           path: 'bitcoin'
-          branch: 'will-repo-changes'
+          ref: 'will-repo-changes'
           fetch-depth: 1
       - name: Get Bitcoin commit hash
         id: bitcoin-commit
