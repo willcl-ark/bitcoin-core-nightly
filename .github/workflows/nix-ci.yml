@@ -98,6 +98,16 @@ jobs:
             cmake_flags: -DBUILD_GUI=ON
             ctest_extra: ""
             config: build-gui
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            cmake_flags: -DBUILD_GUI=ON -DBUILD_BENCH=ON
+            ctest_extra: ""
+            config: build-gui+bench
+          - system: aarch64-linux
+            runner_label: ubuntu-24.04-arm
+            cmake_flags: -DBUILD_BENCH=ON
+            ctest_extra: ""
+            config: build-bench
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
