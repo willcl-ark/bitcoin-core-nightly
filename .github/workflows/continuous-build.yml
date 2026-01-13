@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-build-and-test-workflow:
+  call-nix-build-and-test-workflow:
     name: 'test pull request'
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/nix-ci.yml
     with:
       ctest_model: Continuous
       ctest_build_name_suffix: ${{ github.ref }}
