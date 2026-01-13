@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-nix-build-and-test-workflow:
+  call-nix-build-and-test-workflow-continuous:
     name: 'test pull request'
     uses: ./.github/workflows/nix-ci.yml
     with:

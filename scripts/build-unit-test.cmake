@@ -175,7 +175,7 @@ if(WITH_UPDATE AND CTEST_GIT_COMMAND)
   ctest_submit(PARTS "Update")
 endif()
 
-ctest_configure(OPTIONS "${CONFIG_OPTIONS}")
+ctest_configure(OPTIONS ${CONFIG_OPTIONS})
 ctest_submit(PARTS "Configure")
 
 ctest_build(

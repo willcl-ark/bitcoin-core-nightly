@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-nix-build-and-test-workflow:
+  call-nix-build-and-test-workflow-nightly:
     name: 'test master nightly'
     uses: ./.github/workflows/nix-ci.yml
     with:
       ctest_model: Nightly
       ctest_build_name_suffix: master
-  call-linux-build-and-test-workflow:
+  call-linux-build-and-test-workflow-nightly:
     name: 'test linux nightly'
     uses: ./.github/workflows/linux-ci.yml
     with:
