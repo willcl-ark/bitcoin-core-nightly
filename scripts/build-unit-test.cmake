@@ -24,6 +24,7 @@ set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
 
 # ctest_start will take the name of the mode like the
 # -D command does
+set(CTEST_NIGHTLY_START_TIME "01:00:00 UTC")
 ctest_start("Nightly")
 
 # Attempt to pull updates from version control
