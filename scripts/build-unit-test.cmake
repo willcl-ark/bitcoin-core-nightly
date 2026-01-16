@@ -22,7 +22,7 @@ set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
 
 # ctest_start will take the name of the mode like the
 # -D command does
-ctest_start("Experimental")
+ctest_start("Nightly")
 
 # Attempt to pull updates from version control
 # ctest_update()
