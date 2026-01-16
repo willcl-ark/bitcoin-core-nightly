@@ -103,7 +103,7 @@ jobs:
           nix develop ./bix --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
-            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }}
+            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} -DCTEST_SITE=${{ matrix.runner_label }}
           "
 
   notify-failure:
