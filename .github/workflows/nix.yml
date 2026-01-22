@@ -64,6 +64,9 @@ jobs:
           path: bitcoin
           fetch-depth: 1
 
+      - name: Configure CTest site
+        run: ln -s ../scripts/CTestConfig.cmake bitcoin/CTestConfig.cmake
+
       - name: Get Bitcoin commit hash
         id: bitcoin-commit
         run: |

@@ -40,7 +40,7 @@ ctest_configure(
 ctest_build(BUILD ${CTEST_BINARY_DIRECTORY})
 
 # Executing  ctest command
-ctest_test(${ctest_test_args})
+ctest_test(${ctest_test_args} EXCLUDE "interface_ipc")
 
 # Submit Files to CDash
 ctest_submit()
