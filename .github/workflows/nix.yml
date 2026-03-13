@@ -131,7 +131,7 @@ jobs:
             **Triggered by:** ${{ github.event_name }}
             **Bitcoin Commit:** [\`${BITCOIN_COMMIT_SHORT}\`](https://github.com/bitcoin/bitcoin/commit/${BITCOIN_COMMIT})
 
-            cc: @willcl-ark @fanquake" \
+            cc: @willcl-ark" \
             --repo ${{ github.repository }}
         env:
           GH_TOKEN: ${{ github.token }}
