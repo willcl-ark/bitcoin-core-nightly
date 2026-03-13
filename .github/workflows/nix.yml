@@ -109,9 +109,25 @@ jobs:
             ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} -DCTEST_SITE=${{ matrix.runner_label }}
           "
 
+  vulture:
+    name: Python dead code (vulture)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Bitcoin Repo
+        uses: actions/checkout@v6
+        with:
+          repository: bitcoin/bitcoin
+          fetch-depth: 1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Run vulture
+        run: uvx vulture --min-confidence=100 $(git ls-files -- '*.py')
+
   notify-failure:
     if: failure() || cancelled()
-    needs: check
+    needs: [check, vulture]
     runs-on: ubuntu-latest
     permissions:
       issues: write
