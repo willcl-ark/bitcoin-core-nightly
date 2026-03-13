@@ -33,7 +33,7 @@ jobs:
             cmake_flags:
             build_name: aarch64-linux-nix
           - system: x86_64-darwin
-            runner_label: macos-15-intel
+            runner_label: macos-latest
             cmake_flags: -DWITH_USDT=OFF
             build_name: x86_64-darwin-nix
           - system: aarch64-darwin
@@ -88,6 +88,7 @@ jobs:
           extra-conf: |
             lazy-trees = true
             fallback = true
+            extra-platforms = x86_64-darwin
 
       - name: Set Up Cachix
         uses: cachix/cachix-action@v15
@@ -105,7 +106,7 @@ jobs:
 
       - name: Build and test
         run: |
-          nix develop ./bix --command bash -c "
+          nix develop ./bix --system ${{ matrix.system }} --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
             ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} -DCTEST_SITE=${{ matrix.runner_label }}
