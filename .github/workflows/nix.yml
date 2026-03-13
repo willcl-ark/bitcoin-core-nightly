@@ -85,7 +85,9 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@main
         with:
           determinate: true
-          extra-conf: lazy-trees = true
+          extra-conf: |
+            lazy-trees = true
+            fallback = true
 
       - name: Set Up Cachix
         uses: cachix/cachix-action@v15
