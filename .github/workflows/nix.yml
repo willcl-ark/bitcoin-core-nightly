@@ -60,7 +60,7 @@ jobs:
       - name: Checkout Bitcoin Repo
         uses: actions/checkout@v6
         with:
-          repository: willcl-ark/bitcoin
+          repository: bitcoin/bitcoin
           path: bitcoin
           fetch-depth: 1
 
@@ -140,6 +140,7 @@ jobs:
           BITCOIN_COMMIT_SHORT="${BITCOIN_COMMIT:0:7}"
 
           gh issue create \
+            --label "ci-failure" \
             --title "Nightly CI Failure - $(date +%Y-%m-%d)" \
             --body "**Nightly CI Build Failed**
 
