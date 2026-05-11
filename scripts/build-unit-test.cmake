@@ -22,7 +22,7 @@ find_program(CTEST_GIT_COMMAND git)
 set(CTEST_UPDATE_VERSION_ONLY TRUE)
 
 # Optionally, set files to upload as "NOTES" for the build
-set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
+set(CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
 
 # ctest_start will take the name of the mode like the
 # -D command does
