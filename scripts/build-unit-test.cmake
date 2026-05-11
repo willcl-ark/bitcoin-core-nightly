@@ -18,6 +18,8 @@ if(NOT CTEST_SOURCE_DIRECTORY)
 endif()
 set( CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
 set(CTEST_CMAKE_GENERATOR "Ninja")
+find_program(CTEST_GIT_COMMAND git)
+set(CTEST_UPDATE_VERSION_ONLY TRUE)
 
 # Optionally, set files to upload as "NOTES" for the build
 set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
@@ -26,8 +28,8 @@ set(CTEST_NOTES_FILES "${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt")
 # -D command does
 ctest_start("Nightly")
 
-# Attempt to pull updates from version control
-# ctest_update()
+# Record the current revision without updating the source tree.
+ctest_update()
 
 # Executes the Configure/Generate step
 ctest_configure(
