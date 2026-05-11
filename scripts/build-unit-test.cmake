@@ -1,9 +1,6 @@
-include(ProcessorCount)
-ProcessorCount(n)
-if(NOT n EQUAL 0)
-  set(CTEST_BUILD_FLAGS -j${n})
-  set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${n})
-endif()
+cmake_host_system_information(RESULT nproc QUERY NUMBER_OF_LOGICAL_CORES)
+set(CTEST_BUILD_FLAGS -j${nproc})
+set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${nproc})
 
 set( CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
 set(CTEST_CMAKE_GENERATOR "Ninja")
