@@ -106,7 +106,7 @@ jobs:
           nix develop ./bix --system ${{ matrix.system }} --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
-            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} -DCTEST_SITE=${{ matrix.runner_label }}
+            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_BUILD_NAME=${{ matrix.build_name }} -DCTEST_SITE=${{ github.repository }}
           "
 
   vulture:
