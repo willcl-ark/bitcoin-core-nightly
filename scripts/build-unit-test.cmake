@@ -2,10 +2,10 @@ cmake_host_system_information(RESULT nproc QUERY NUMBER_OF_LOGICAL_CORES)
 set(CTEST_BUILD_FLAGS -j${nproc})
 set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${nproc})
 
-# CTEST_SITE, CTEST_BUILD_NAME, and CTEST_SOURCE_DIRECTORY are provided by
-# the GitHub Actions workflow.
+# CTEST_SITE and CTEST_SOURCE_DIRECTORY are provided by the GitHub Actions
+# workflow.
+include("${CMAKE_CURRENT_LIST_DIR}/set-cdash-build-name.cmake")
 set(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
-set(CTEST_CMAKE_GENERATOR "Ninja")
 find_program(CTEST_GIT_COMMAND git)
 set(CTEST_UPDATE_VERSION_ONLY TRUE)
 
