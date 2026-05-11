@@ -13,21 +13,25 @@ set(CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
 # ctest_start will take the name of the mode like the
 # -D command does
 ctest_start("Nightly")
+ctest_submit(PARTS "Notes")
 
 # Record the current revision without updating the source tree.
 ctest_update()
+ctest_submit(PARTS "Update")
 
 # Executes the Configure/Generate step
 ctest_configure(
     BUILD   ${CTEST_BINARY_DIRECTORY}
     SOURCE  ${CTEST_SOURCE_DIRECTORY}
 )
+ctest_submit(PARTS "Configure")
 
 # Execute the build step to capture build information
 ctest_build(BUILD ${CTEST_BINARY_DIRECTORY})
+ctest_submit(PARTS "Build")
 
 # Executing  ctest command
 ctest_test(${ctest_test_args} EXCLUDE "interface_ipc")
+ctest_submit(PARTS "Test")
 
-# Submit Files to CDash
-ctest_submit()
+ctest_submit(PARTS "Done")
