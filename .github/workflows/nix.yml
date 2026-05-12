@@ -127,17 +127,6 @@ jobs:
             ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_SITE=${{ github.repository }}
           "
 
-      - name: Debug Darwin ranlib empty-object warnings
-        if: contains(matrix.system, 'darwin')
-        continue-on-error: true
-        env:
-          DARWIN_TARGET: ${{ matrix.system == 'aarch64-darwin' && 'arm64-apple-darwin' || 'x86_64-apple-darwin' }}
-        run: |
-          nix develop ${{ matrix.devshell }} --system ${{ matrix.system }} --no-write-lock-file --command bash -c "
-            set -eux
-            TARGETS=${DARWIN_TARGET} bash ./debug/ranlib-empty-darwin.sh
-          "
-
   vulture:
     name: Python dead code (vulture)
     runs-on: ubuntu-latest
