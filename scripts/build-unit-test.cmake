@@ -1,4 +1,6 @@
 cmake_host_system_information(RESULT nproc QUERY NUMBER_OF_LOGICAL_CORES)
+cmake_host_system_information(RESULT host_system_name QUERY OS_NAME)
+cmake_host_system_information(RESULT host_system_processor QUERY OS_PLATFORM)
 set(CTEST_BUILD_FLAGS -j${nproc})
 set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${nproc})
 
@@ -20,6 +22,16 @@ endif()
 set(CTEST_NOTES_FILES)
 list(APPEND CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
 
+set(ctest_configure_options)
+if(host_system_name STREQUAL "Darwin" AND host_system_processor STREQUAL "x86_64")
+    # x86_64 Mach-O objects from empty or static-only translation units may
+    # contain no symbols, causing cctools ranlib to emit non-fatal diagnostics
+    # that CDash records as build warnings.
+    set(darwin_archive_finish "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
+    string(APPEND ctest_configure_options " -DCMAKE_C_ARCHIVE_FINISH:STRING=${darwin_archive_finish}")
+    string(APPEND ctest_configure_options " -DCMAKE_CXX_ARCHIVE_FINISH:STRING=${darwin_archive_finish}")
+endif()
+
 ctest_start("${ctest_dashboard_model}")
 
 # Record the current revision without updating the source tree checked out by
@@ -30,6 +42,7 @@ ctest_submit(PARTS "Update")
 ctest_configure(
     BUILD   ${CTEST_BINARY_DIRECTORY}
     SOURCE  ${CTEST_SOURCE_DIRECTORY}
+    OPTIONS "${ctest_configure_options}"
 )
 include("${CMAKE_CURRENT_LIST_DIR}/write-build-config-note.cmake")
 list(REMOVE_DUPLICATES CTEST_NOTES_FILES)
