@@ -24,7 +24,8 @@ ctest_configure(
     BUILD   ${CTEST_BINARY_DIRECTORY}
     SOURCE  ${CTEST_SOURCE_DIRECTORY}
 )
-ctest_submit(PARTS "Configure")
+include("${CMAKE_CURRENT_LIST_DIR}/write-build-config-note.cmake")
+ctest_submit(PARTS "Configure" "Notes")
 
 ctest_build(BUILD ${CTEST_BINARY_DIRECTORY})
 ctest_submit(PARTS "Build")
