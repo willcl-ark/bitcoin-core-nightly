@@ -11,7 +11,7 @@ on:
 
 jobs:
   check:
-    name: nixpkgs (${{ matrix.system }})
+    name: nixpkgs (${{ matrix.system }}, ${{ matrix.toolchain }})
     runs-on: ${{ matrix.runner_label }}
     outputs:
       bitcoin-commit: ${{ steps.bitcoin-commit.outputs.commit }}
@@ -26,15 +26,33 @@ jobs:
         include:
           - system: x86_64-linux
             runner_label: ubuntu-latest
+            toolchain: clang
+            devshell: ./bix
             cmake_flags:
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
+            toolchain: clang
+            devshell: ./bix
+            cmake_flags:
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            toolchain: gcc
+            devshell: .#gcc
+            cmake_flags:
+          - system: aarch64-linux
+            runner_label: ubuntu-24.04-arm
+            toolchain: gcc
+            devshell: .#gcc
             cmake_flags:
           - system: x86_64-darwin
             runner_label: macos-latest
+            toolchain: clang
+            devshell: ./bix
             cmake_flags: -DWITH_USDT=OFF
           - system: aarch64-darwin
             runner_label: macos-latest
+            toolchain: clang
+            devshell: ./bix
             cmake_flags: -DWITH_USDT=OFF
 
     env:
@@ -92,16 +110,18 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run `nix flake update`
+        if: matrix.devshell == './bix'
         working-directory: bix
         run: nix flake update
 
       - name: Run `nix flake check`
+        if: matrix.devshell == './bix'
         working-directory: bix
         run: nix flake check
 
       - name: Build and test
         run: |
-          nix develop ./bix --system ${{ matrix.system }} --command bash -c "
+          nix develop ${{ matrix.devshell }} --system ${{ matrix.system }} --no-write-lock-file --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
             ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_SITE=${{ github.repository }}
