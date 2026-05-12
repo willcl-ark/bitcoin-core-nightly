@@ -32,7 +32,9 @@ ctest_configure(
     SOURCE  ${CTEST_SOURCE_DIRECTORY}
 )
 include("${CMAKE_CURRENT_LIST_DIR}/write-build-config-note.cmake")
+list(REMOVE_DUPLICATES CTEST_NOTES_FILES)
 ctest_submit(PARTS "Configure" "Notes")
+set(CTEST_NOTES_FILES)
 
 ctest_build(BUILD ${CTEST_BINARY_DIRECTORY})
 ctest_submit(PARTS "Build")
