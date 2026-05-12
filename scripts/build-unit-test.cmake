@@ -10,10 +10,10 @@ find_program(CTEST_GIT_COMMAND git)
 set(CTEST_UPDATE_VERSION_ONLY TRUE)
 
 # Include this dashboard script in the submitted CDash notes.
-set(CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
+set(CTEST_NOTES_FILES)
+list(APPEND CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
 
 ctest_start("Nightly")
-ctest_submit(PARTS "Notes")
 
 # Record the current revision without updating the source tree checked out by
 # the workflow.
