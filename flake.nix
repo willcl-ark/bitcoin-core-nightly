@@ -50,20 +50,16 @@
             buildInputs = commonBuildInputs;
           };
 
-          libcxx = pkgs.mkShell {
+          libcxx = pkgs.mkShell.override { stdenv = llvm.libcxxStdenv; } {
             nativeBuildInputs = commonNativeBuildInputs ++ [
-              llvm.clang
+              llvm.libcxxClang
             ];
 
-            buildInputs = commonBuildInputs ++ [
-              llvm.libcxx
-            ];
+            buildInputs = commonBuildInputs;
 
             shellHook = ''
               export CC=clang
               export CXX=clang++
-              export CXXFLAGS="-stdlib=libc++ ''${CXXFLAGS:-}"
-              export LDFLAGS="-stdlib=libc++ ''${LDFLAGS:-}"
             '';
           };
 
