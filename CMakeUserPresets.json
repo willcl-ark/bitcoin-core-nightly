@@ -1,0 +1,57 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "darwin",
+      "inherits": "default",
+      "cacheVariables": {
+        "WITH_USDT": "OFF"
+      }
+    },
+    {
+      "name": "darwin-x86_64",
+      "inherits": "darwin",
+      "cacheVariables": {
+        "CMAKE_C_ARCHIVE_FINISH": "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>",
+        "CMAKE_CXX_ARCHIVE_FINISH": "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>"
+      }
+    },
+    {
+      "name": "strict-align-ubsan",
+      "inherits": "default",
+      "cacheVariables": {
+        "BUILD_GUI": "OFF",
+        "REDUCE_EXPORTS": "ON",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "SANITIZERS": "undefined,integer,float-divide-by-zero",
+        "APPEND_CXXFLAGS": "-mstrict-align -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "gcc-stdlib-debug",
+      "inherits": "default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "APPEND_CXXFLAGS": "-O2 -g2 -fno-omit-frame-pointer",
+        "APPEND_CPPFLAGS": "-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_ASSERTIONS -DBOOST_MULTI_INDEX_ENABLE_SAFE_MODE"
+      }
+    },
+    {
+      "name": "libcxx-hardened",
+      "inherits": "default",
+      "cacheVariables": {
+        "BUILD_GUI": "OFF",
+        "REDUCE_EXPORTS": "ON",
+        "CMAKE_CXX_FLAGS": "-stdlib=libc++",
+        "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++",
+        "APPEND_CPPFLAGS": "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG -D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES"
+      }
+    }
+  ]
+}

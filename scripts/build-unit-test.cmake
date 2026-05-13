@@ -10,6 +10,14 @@ include("${CMAKE_CURRENT_LIST_DIR}/set-cdash-build-name.cmake")
 get_filename_component(CTEST_SOURCE_DIRECTORY "${CTEST_SOURCE_DIRECTORY}" ABSOLUTE)
 set(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/build")
 set(functional_ctest_binary_directory "${CTEST_SOURCE_DIRECTORY}/build-functional-ctest")
+if(DEFINED ENV{CTEST_CONFIGURE_PRESET} AND NOT "$ENV{CTEST_CONFIGURE_PRESET}" STREQUAL "")
+    set(ctest_configure_preset "$ENV{CTEST_CONFIGURE_PRESET}")
+else()
+    set(ctest_configure_preset "default")
+endif()
+set(nightly_presets_file "${CMAKE_CURRENT_LIST_DIR}/../CMakeUserPresets.json")
+set(ctest_source_presets_file "${CTEST_SOURCE_DIRECTORY}/CMakeUserPresets.json")
+file(COPY_FILE "${nightly_presets_file}" "${ctest_source_presets_file}")
 find_program(CTEST_GIT_COMMAND git)
 set(CTEST_UPDATE_VERSION_ONLY TRUE)
 if(DEFINED ENV{CTEST_DASHBOARD_MODEL})
@@ -21,16 +29,9 @@ endif()
 # Include this dashboard script in the submitted CDash notes.
 set(CTEST_NOTES_FILES)
 list(APPEND CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
+list(APPEND CTEST_NOTES_FILES "${ctest_source_presets_file}")
 
-set(ctest_configure_options)
-if(host_system_name STREQUAL "Darwin" AND host_system_processor STREQUAL "x86_64")
-    # x86_64 Mach-O objects from empty or static-only translation units may
-    # contain no symbols, causing cctools ranlib to emit non-fatal diagnostics
-    # that CDash records as build warnings.
-    set(darwin_archive_finish "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
-    string(APPEND ctest_configure_options " -DCMAKE_C_ARCHIVE_FINISH:STRING=${darwin_archive_finish}")
-    string(APPEND ctest_configure_options " -DCMAKE_CXX_ARCHIVE_FINISH:STRING=${darwin_archive_finish}")
-endif()
+set(ctest_configure_options "--preset ${ctest_configure_preset}")
 
 ctest_start("${ctest_dashboard_model}")
 

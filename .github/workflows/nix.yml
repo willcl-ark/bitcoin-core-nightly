@@ -28,32 +28,50 @@ jobs:
             runner_label: ubuntu-latest
             toolchain: clang
             devshell: ./bix
-            cmake_flags:
+            cmake_preset: default
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             toolchain: clang
             devshell: ./bix
-            cmake_flags:
+            cmake_preset: default
+          - system: aarch64-linux
+            runner_label: ubuntu-24.04-arm
+            toolchain: clang-strict-align-ubsan
+            devshell: .#clang-sanitizer
+            build_name_suffix: strict-align-ubsan
+            cmake_preset: strict-align-ubsan
           - system: x86_64-linux
             runner_label: ubuntu-latest
             toolchain: gcc
             devshell: .#gcc
-            cmake_flags:
+            cmake_preset: default
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            toolchain: gcc-stdlib-debug
+            devshell: .#gcc
+            build_name_suffix: gcc-stdlib-debug
+            cmake_preset: gcc-stdlib-debug
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            toolchain: libcxx-hardened
+            devshell: .#libcxx
+            build_name_suffix: libcxx-hardened
+            cmake_preset: libcxx-hardened
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             toolchain: gcc
             devshell: .#gcc
-            cmake_flags:
+            cmake_preset: default
           - system: x86_64-darwin
             runner_label: macos-latest
             toolchain: clang
             devshell: ./bix
-            cmake_flags: -DWITH_USDT=OFF
+            cmake_preset: darwin-x86_64
           - system: aarch64-darwin
             runner_label: macos-latest
             toolchain: clang
             devshell: ./bix
-            cmake_flags: -DWITH_USDT=OFF
+            cmake_preset: darwin
 
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -120,6 +138,9 @@ jobs:
         run: nix flake check
 
       - name: Build and test
+        env:
+          CDASH_BUILD_NAME_SUFFIX: ${{ matrix.build_name_suffix }}
+          CTEST_CONFIGURE_PRESET: ${{ matrix.cmake_preset }}
         run: |
           nix develop ${{ matrix.devshell }} --system ${{ matrix.system }} --no-write-lock-file --command bash -c "
             set -eux

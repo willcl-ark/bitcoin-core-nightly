@@ -37,4 +37,7 @@ else()
 endif()
 
 set(CTEST_BUILD_NAME "$ENV{CDASH_BUILD_NAME_PREFIX}_${host_triplet}_${compiler_id}-${compiler_major}_${generator_id}")
+if(DEFINED ENV{CDASH_BUILD_NAME_SUFFIX} AND NOT "$ENV{CDASH_BUILD_NAME_SUFFIX}" STREQUAL "")
+    string(APPEND CTEST_BUILD_NAME "_$ENV{CDASH_BUILD_NAME_SUFFIX}")
+endif()
 message(STATUS "CTEST_BUILD_NAME=${CTEST_BUILD_NAME}")
