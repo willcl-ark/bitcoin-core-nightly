@@ -29,7 +29,7 @@
         "REDUCE_EXPORTS": "ON",
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
-        "SANITIZERS": "undefined,integer,float-divide-by-zero",
+        "SANITIZERS": "undefined,float-divide-by-zero",
         "APPEND_CXXFLAGS": "-mstrict-align -fno-omit-frame-pointer"
       }
     },
