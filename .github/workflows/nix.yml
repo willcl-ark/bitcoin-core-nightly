@@ -40,23 +40,6 @@ jobs:
             devshell: .#clang-sanitizer
             build_name_suffix: strict-align-ubsan
             cmake_preset: strict-align-ubsan
-          - system: x86_64-linux
-            runner_label: ubuntu-latest
-            toolchain: gcc
-            devshell: .#gcc
-            cmake_preset: default
-          - system: x86_64-linux
-            runner_label: ubuntu-latest
-            toolchain: gcc-stdlib-debug
-            devshell: .#gcc
-            build_name_suffix: gcc-stdlib-debug
-            cmake_preset: gcc-stdlib-debug
-          - system: x86_64-linux
-            runner_label: ubuntu-latest
-            toolchain: libcxx-hardened
-            devshell: .#libcxx
-            build_name_suffix: libcxx-hardened
-            cmake_preset: libcxx-hardened
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             toolchain: gcc

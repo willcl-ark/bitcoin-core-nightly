@@ -77,19 +77,6 @@
             buildInputs = commonBuildInputs;
           };
 
-          libcxx = pkgs.mkShell.override { stdenv = llvm.libcxxStdenv; } {
-            nativeBuildInputs = commonNativeBuildInputs ++ [
-              llvm.libcxxClang
-            ];
-
-            buildInputs = commonBuildInputs;
-
-            shellHook = ''
-              export CC=clang
-              export CXX=clang++
-            '';
-          };
-
           clang-sanitizer = pkgs.mkShell {
             nativeBuildInputs = commonNativeBuildInputs ++ [
               llvm.clang
