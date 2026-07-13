@@ -45,11 +45,6 @@ jobs:
             toolchain: gcc
             devshell: .#gcc
             cmake_preset: default
-          - system: x86_64-darwin
-            runner_label: macos-latest
-            toolchain: clang
-            devshell: ./bix
-            cmake_preset: darwin-x86_64
           - system: aarch64-darwin
             runner_label: macos-latest
             toolchain: clang
