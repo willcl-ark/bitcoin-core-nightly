@@ -44,13 +44,21 @@ ctest_configure(
     BUILD   ${CTEST_BINARY_DIRECTORY}
     SOURCE  ${CTEST_SOURCE_DIRECTORY}
     OPTIONS "${ctest_configure_options}"
+    RETURN_VALUE ctest_configure_result
 )
+if(NOT ctest_configure_result EQUAL 0)
+    include("${CMAKE_CURRENT_LIST_DIR}/dump-cmake-configure-log.cmake")
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/write-build-config-note.cmake")
 list(REMOVE_DUPLICATES CTEST_NOTES_FILES)
 ctest_submit(PARTS "Configure" "Notes")
 set(CTEST_NOTES_FILES)
 
-ctest_build(BUILD ${CTEST_BINARY_DIRECTORY})
+ctest_build(BUILD ${CTEST_BINARY_DIRECTORY} RETURN_VALUE ctest_build_result)
+if(NOT ctest_build_result EQUAL 0)
+    include("${CMAKE_CURRENT_LIST_DIR}/dump-ctest-build-log.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/dump-cmake-configure-log.cmake")
+endif()
 ctest_submit(PARTS "Build")
 
 ctest_test(${ctest_test_args} EXCLUDE "interface_ipc")
