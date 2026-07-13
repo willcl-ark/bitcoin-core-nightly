@@ -9,6 +9,8 @@ if(NOT EXISTS "${cmake_configure_log}")
     return()
 endif()
 
+list(APPEND CTEST_NOTES_FILES "${cmake_configure_log}")
+
 file(READ "${cmake_configure_log}" cmake_configure_log_content)
 message("Begin ${cmake_configure_log}")
 message("${cmake_configure_log_content}")

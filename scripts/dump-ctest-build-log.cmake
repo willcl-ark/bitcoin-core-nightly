@@ -16,6 +16,8 @@ if(NOT EXISTS "${ctest_build_log}")
     return()
 endif()
 
+list(APPEND CTEST_NOTES_FILES "${ctest_build_log}")
+
 file(READ "${ctest_build_log}" ctest_build_log_content)
 message("Begin ${ctest_build_log}")
 message("${ctest_build_log_content}")
