@@ -75,8 +75,19 @@ ctest_configure(
     OPTIONS "-DBITCOIN_BUILD_DIR=${CTEST_BINARY_DIRECTORY}"
 )
 
-ctest_test(BUILD ${functional_ctest_binary_directory} APPEND ${ctest_test_args})
-ctest_submit(PARTS "Test")
+ctest_test(
+    BUILD ${functional_ctest_binary_directory}
+    APPEND ${ctest_test_args}
+    RETURN_VALUE ctest_functional_test_result
+)
+set(ctest_functional_submit_parts "Test")
+if(NOT ctest_functional_test_result EQUAL 0)
+    include("${CMAKE_CURRENT_LIST_DIR}/dump-functional-test-log.cmake")
+    if(CTEST_NOTES_FILES)
+        list(APPEND ctest_functional_submit_parts "Notes")
+    endif()
+endif()
+ctest_submit(PARTS ${ctest_functional_submit_parts})
 
 # Submit Done last so CDash marks the build as complete.
 ctest_submit(PARTS "Done")
