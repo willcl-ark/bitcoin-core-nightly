@@ -77,17 +77,17 @@ jobs:
               -B build-functional-ctest \
               -DBITCOIN_BUILD_DIR="$GITHUB_WORKSPACE/bitcoin/build"
 
-            DEVELOPER_DIR="$(/usr/bin/xcode-select --print-path)"
+            SYSTEM_DEVELOPER_DIR="$(env -u DEVELOPER_DIR /usr/bin/xcode-select --print-path)"
             APPLE_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
-            LLDB="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$DEVELOPER_DIR" \
+            LLDB="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$SYSTEM_DEVELOPER_DIR" \
               /usr/bin/xcrun --find lldb 2>/dev/null || true)"
             if [ ! -x "$LLDB" ]; then
-              LLDB="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/lldb"
+              LLDB="$SYSTEM_DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/lldb"
             fi
-            DEBUGSERVER="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$DEVELOPER_DIR" \
+            DEBUGSERVER="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$SYSTEM_DEVELOPER_DIR" \
               /usr/bin/xcrun --find debugserver 2>/dev/null || true)"
             if [ ! -x "$DEBUGSERVER" ]; then
-              DEBUGSERVER="$(find "$DEVELOPER_DIR" -type f -name debugserver \
+              DEBUGSERVER="$(find "$SYSTEM_DEVELOPER_DIR" -type f -name debugserver \
                 -perm -111 -print -quit)"
             fi
             test -x "$LLDB"
@@ -97,7 +97,7 @@ jobs:
               nix --version
               clang --version
               clang++ --version
-              echo "DEVELOPER_DIR=$DEVELOPER_DIR"
+              echo "SYSTEM_DEVELOPER_DIR=$SYSTEM_DEVELOPER_DIR"
               echo "LLDB=$LLDB"
               echo "LLDB_DEBUGSERVER_PATH=$LLDB_DEBUGSERVER_PATH"
               "$LLDB" --version
