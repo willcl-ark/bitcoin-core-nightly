@@ -77,12 +77,29 @@ jobs:
               -B build-functional-ctest \
               -DBITCOIN_BUILD_DIR="$GITHUB_WORKSPACE/bitcoin/build"
 
-            LLDB="$(xcrun --find lldb)"
+            DEVELOPER_DIR="$(/usr/bin/xcode-select --print-path)"
+            APPLE_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+            LLDB="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$DEVELOPER_DIR" \
+              /usr/bin/xcrun --find lldb 2>/dev/null || true)"
+            if [ ! -x "$LLDB" ]; then
+              LLDB="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/lldb"
+            fi
+            DEBUGSERVER="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$DEVELOPER_DIR" \
+              /usr/bin/xcrun --find debugserver 2>/dev/null || true)"
+            if [ ! -x "$DEBUGSERVER" ]; then
+              DEBUGSERVER="$(find "$DEVELOPER_DIR" -type f -name debugserver \
+                -perm -111 -print -quit)"
+            fi
+            test -x "$LLDB"
+            test -x "$DEBUGSERVER"
+            export LLDB_DEBUGSERVER_PATH="$DEBUGSERVER"
             {
               nix --version
               clang --version
               clang++ --version
+              echo "DEVELOPER_DIR=$DEVELOPER_DIR"
               echo "LLDB=$LLDB"
+              echo "LLDB_DEBUGSERVER_PATH=$LLDB_DEBUGSERVER_PATH"
               "$LLDB" --version
             } 2>&1 | tee "$GITHUB_WORKSPACE/toolchain.txt"
 
@@ -97,6 +114,11 @@ jobs:
               -o "process detach" \
               > "$GITHUB_WORKSPACE/lldb.log" 2>&1 &
             LLDB_PID=$!
+
+            sleep 1
+            if ! kill -0 "$LLDB_PID" 2>/dev/null; then
+              wait "$LLDB_PID"
+            fi
 
             cleanup() {
               if kill -0 "$LLDB_PID" 2>/dev/null; then
