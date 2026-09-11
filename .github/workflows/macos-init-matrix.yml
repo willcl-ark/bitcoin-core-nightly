@@ -19,6 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          path: nightly
+      - uses: actions/checkout@v6
+        with:
           repository: bitcoin-dev-tools/bix
           ref: b0ff4bac97eeacddd37f6f7b97409a4a2919de50
           path: bix
@@ -56,6 +59,7 @@ jobs:
             if [ "$SOURCE_MODE" = static ]; then
               sed -i "s/^inline const /static const /" bitcoin/src/wallet/wallet.h
             fi
+            cp nightly/CMakeUserPresets.json bitcoin/CMakeUserPresets.json
             cmake --preset darwin -S bitcoin
             cmake --build bitcoin/build --parallel 3
             bitcoin/build/bin/bitcoind -version
