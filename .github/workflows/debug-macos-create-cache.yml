@@ -73,7 +73,7 @@ jobs:
           # shellcheck disable=SC2016
           nix develop ./bix --system aarch64-darwin \
             --override-input nixpkgs "$NIXPKGS_REF" --command bash -euc '
-            set -x
+            set -xo pipefail
             export CCACHE_DIR="$GITHUB_WORKSPACE/.ccache"
 
             SYSTEM_DEVELOPER_DIR="$(env -u DEVELOPER_DIR /usr/bin/xcode-select --print-path)"
@@ -83,12 +83,7 @@ jobs:
             if [ ! -x "$LLDB" ]; then
               LLDB="$SYSTEM_DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/lldb"
             fi
-            DEBUGSERVER="$(PATH="$APPLE_PATH" DEVELOPER_DIR="$SYSTEM_DEVELOPER_DIR" \
-              /usr/bin/xcrun --find debugserver 2>/dev/null || true)"
-            if [ ! -x "$DEBUGSERVER" ]; then
-              DEBUGSERVER="$(find "$SYSTEM_DEVELOPER_DIR" -type f -name debugserver \
-                -perm -111 -print -quit)"
-            fi
+            DEBUGSERVER="$SYSTEM_DEVELOPER_DIR/../SharedFrameworks/LLDB.framework/Resources/debugserver"
             test -x "$LLDB"
             test -x "$DEBUGSERVER"
             export LLDB
@@ -104,6 +99,11 @@ jobs:
               echo "LLDB_DEBUGSERVER_PATH=$LLDB_DEBUGSERVER_PATH"
               "$LLDB" --version
             } 2>&1 | tee "$GITHUB_WORKSPACE/toolchain.txt"
+
+            printf "int main(void) { return 0; }\n" \
+              | clang -x c - -o "$RUNNER_TEMP/lldb-smoke"
+            "$LLDB" --batch --one-line run -- "$RUNNER_TEMP/lldb-smoke" \
+              2>&1 | tee "$GITHUB_WORKSPACE/lldb-smoke.log"
 
             cp CMakeUserPresets.json bitcoin/CMakeUserPresets.json
             cmake --preset darwin -S bitcoin
@@ -135,7 +135,7 @@ jobs:
           mkdir -p artifacts
           cp -R build-functional-plain build-functional-lldb artifacts/ 2>/dev/null || true
           cp -R "$HOME/Library/Logs/DiagnosticReports" artifacts/ 2>/dev/null || true
-          cp lldb.log toolchain.txt bix-flake-metadata.json artifacts/ 2>/dev/null || true
+          cp lldb.log lldb-smoke.log toolchain.txt bix-flake-metadata.json artifacts/ 2>/dev/null || true
           cp bitcoin/build/CMakeCache.txt bitcoin/build/build.ninja \
             bitcoin/build/compile_commands.json \
             bitcoin/build/CMakeFiles/CMakeConfigureLog.yaml artifacts/ 2>/dev/null || true
