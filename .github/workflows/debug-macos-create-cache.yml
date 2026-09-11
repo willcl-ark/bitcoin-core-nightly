@@ -6,11 +6,15 @@ on:
       bitcoin_ref:
         description: Bitcoin Core ref to build
         required: true
-        default: master
+        default: fc4f35fdce4d65696be6bf34003dbcac1f2f64bf
       bix_ref:
         description: Bix ref to use
         required: true
-        default: master
+        default: b0ff4bac97eeacddd37f6f7b97409a4a2919de50
+      nixpkgs_ref:
+        description: Nixpkgs input to reproduce the toolchain
+        required: true
+        default: github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b
 
 permissions:
   contents: read
@@ -20,6 +24,8 @@ jobs:
     name: create_cache under lldb
     runs-on: macos-latest
     timeout-minutes: 45
+    env:
+      NIXPKGS_REF: ${{ inputs.nixpkgs_ref }}
 
     steps:
       - name: Checkout nightly repository
@@ -56,26 +62,19 @@ jobs:
           name: nix-dev-shell
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Update and record Bix toolchain
+      - name: Record pinned Bix toolchain
         working-directory: bix
         run: |
-          nix flake update
-          nix flake metadata --no-write-lock-file | tee "$GITHUB_WORKSPACE/bix-flake-metadata.txt"
+          nix flake metadata --override-input nixpkgs "$NIXPKGS_REF" --json \
+            | tee "$GITHUB_WORKSPACE/bix-flake-metadata.json"
 
       - name: Build Bitcoin Core and run create_cache under lldb
         run: |
           # shellcheck disable=SC2016
-          nix develop ./bix --system aarch64-darwin --no-write-lock-file --command bash -euc '
+          nix develop ./bix --system aarch64-darwin \
+            --override-input nixpkgs "$NIXPKGS_REF" --command bash -euc '
             set -x
             export CCACHE_DIR="$GITHUB_WORKSPACE/.ccache"
-
-            cp CMakeUserPresets.json bitcoin/CMakeUserPresets.json
-            cmake --preset darwin -S bitcoin
-            cmake --build bitcoin/build --parallel 3
-
-            cmake -S scripts/functional-ctest \
-              -B build-functional-ctest \
-              -DBITCOIN_BUILD_DIR="$GITHUB_WORKSPACE/bitcoin/build"
 
             SYSTEM_DEVELOPER_DIR="$(env -u DEVELOPER_DIR /usr/bin/xcode-select --print-path)"
             APPLE_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
@@ -92,8 +91,11 @@ jobs:
             fi
             test -x "$LLDB"
             test -x "$DEBUGSERVER"
+            export LLDB
             export LLDB_DEBUGSERVER_PATH="$DEBUGSERVER"
             {
+              /usr/bin/sw_vers
+              uname -a
               nix --version
               clang --version
               clang++ --version
@@ -103,45 +105,45 @@ jobs:
               "$LLDB" --version
             } 2>&1 | tee "$GITHUB_WORKSPACE/toolchain.txt"
 
-            "$LLDB" \
-              --batch \
-              --attach-name bitcoind \
-              --wait-for \
-              -o "breakpoint set --language-exception c++" \
-              -o "continue" \
-              -o "thread backtrace all" \
-              -o "process status" \
-              -o "process detach" \
-              > "$GITHUB_WORKSPACE/lldb.log" 2>&1 &
-            LLDB_PID=$!
+            cp CMakeUserPresets.json bitcoin/CMakeUserPresets.json
+            cmake --preset darwin -S bitcoin
+            cmake --build bitcoin/build --parallel 3
+            /usr/bin/otool -L bitcoin/build/bin/bitcoind >> "$GITHUB_WORKSPACE/toolchain.txt"
 
-            sleep 1
-            if ! kill -0 "$LLDB_PID" 2>/dev/null; then
-              wait "$LLDB_PID"
-            fi
-
-            cleanup() {
-              if kill -0 "$LLDB_PID" 2>/dev/null; then
-                kill "$LLDB_PID" 2>/dev/null || true
-                wait "$LLDB_PID" || true
+            export BITCOIND="$GITHUB_WORKSPACE/bitcoin/build/bin/bitcoind"
+            test_result=0
+            for mode in plain lldb; do
+              if [ "$mode" = lldb ]; then
+                export BITCOIND="$GITHUB_WORKSPACE/scripts/debug-bitcoind.sh"
               fi
-            }
-            trap cleanup EXIT
+              cmake -S scripts/functional-ctest \
+                -B "build-functional-$mode" \
+                -DBITCOIN_BUILD_DIR="$GITHUB_WORKSPACE/bitcoin/build"
 
-            ctest \
-              --test-dir build-functional-ctest \
-              --verbose \
-              --output-on-failure \
-              --tests-regex "^functional\\.create_cache$"
+              ctest \
+                --test-dir "build-functional-$mode" \
+                --verbose \
+                --output-on-failure \
+                --tests-regex "^functional\\.create_cache$" || test_result=1
+            done
+            exit "$test_result"
           '
 
       - name: Collect debug logs
         if: always()
         run: |
           mkdir -p artifacts
-          cp -R build-functional-ctest artifacts/ 2>/dev/null || true
+          cp -R build-functional-plain build-functional-lldb artifacts/ 2>/dev/null || true
           cp -R "$HOME/Library/Logs/DiagnosticReports" artifacts/ 2>/dev/null || true
-          cp lldb.log toolchain.txt bix-flake-metadata.txt artifacts/ 2>/dev/null || true
+          cp lldb.log toolchain.txt bix-flake-metadata.json artifacts/ 2>/dev/null || true
+          cp bitcoin/build/CMakeCache.txt bitcoin/build/build.ninja \
+            bitcoin/build/compile_commands.json \
+            bitcoin/build/CMakeFiles/CMakeConfigureLog.yaml artifacts/ 2>/dev/null || true
+          if [ -f bitcoin/build/bin/bitcoind ]; then
+            cp bitcoin/build/bin/bitcoind artifacts/
+            /usr/bin/dsymutil bitcoin/build/bin/bitcoind -o artifacts/bitcoind.dSYM \
+              > artifacts/dsymutil.log 2>&1
+          fi
 
       - name: Upload debug logs
         if: always()
