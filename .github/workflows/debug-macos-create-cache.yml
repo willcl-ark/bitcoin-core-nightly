@@ -110,6 +110,23 @@ jobs:
             cmake --build bitcoin/build --parallel 3
             /usr/bin/otool -L bitcoin/build/bin/bitcoind >> "$GITHUB_WORKSPACE/toolchain.txt"
 
+            find bitcoin/build -type f -name "*.o" -path "*wallet*" \
+              -print > "$GITHUB_WORKSPACE/wallet-objects.txt"
+            tar -czf "$GITHUB_WORKSPACE/wallet-objects.tar.gz" \
+              -T "$GITHUB_WORKSPACE/wallet-objects.txt"
+            ninja -C bitcoin/build -t commands bitcoind \
+              | tail -n 1 > "$GITHUB_WORKSPACE/bitcoind-link-command.txt"
+            host_link_command="$(sed \
+              -e "s#^: && ##" \
+              -e "s#clang++ #clang++ -fuse-ld=/usr/bin/ld #" \
+              -e "s#-o bin/bitcoind#-o \\\"$GITHUB_WORKSPACE/bitcoind-host-ld\\\"#" \
+              "$GITHUB_WORKSPACE/bitcoind-link-command.txt")"
+            set +e
+            (cd bitcoin/build && eval "$host_link_command") \
+              > "$GITHUB_WORKSPACE/host-linker.log" 2>&1
+            echo "host linker exit code: $?" >> "$GITHUB_WORKSPACE/host-linker.log"
+            set -e
+
             export BITCOIND="$GITHUB_WORKSPACE/bitcoin/build/bin/bitcoind"
             test_result=0
             for mode in plain lldb; do
@@ -136,6 +153,8 @@ jobs:
           cp -R build-functional-plain build-functional-lldb artifacts/ 2>/dev/null || true
           cp -R "$HOME/Library/Logs/DiagnosticReports" artifacts/ 2>/dev/null || true
           cp lldb.log lldb-smoke.log toolchain.txt bix-flake-metadata.json artifacts/ 2>/dev/null || true
+          cp wallet-objects.txt wallet-objects.tar.gz bitcoind-link-command.txt \
+            host-linker.log bitcoind-host-ld artifacts/ 2>/dev/null || true
           cp bitcoin/build/CMakeCache.txt bitcoin/build/build.ninja \
             bitcoin/build/compile_commands.json \
             bitcoin/build/CMakeFiles/CMakeConfigureLog.yaml artifacts/ 2>/dev/null || true
