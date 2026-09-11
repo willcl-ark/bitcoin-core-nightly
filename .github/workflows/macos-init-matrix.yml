@@ -1,0 +1,106 @@
+name: macOS static initialization matrix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    name: ${{ matrix.source }} source with Clang ${{ matrix.clang }}
+    runs-on: macos-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [inline, static]
+        clang: [21, 22]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: bitcoin-dev-tools/bix
+          ref: b0ff4bac97eeacddd37f6f7b97409a4a2919de50
+          path: bix
+
+      - uses: actions/checkout@v6
+        with:
+          repository: bitcoin/bitcoin
+          ref: fc4f35fdce4d65696be6bf34003dbcac1f2f64bf
+          path: bitcoin
+
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+          extra-conf: |
+            lazy-trees = true
+            fallback = true
+            extra-platforms = x86_64-darwin
+
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: nix-dev-shell
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build and run
+        run: |
+          nix_shell=./bix
+          if [ "${{ matrix.clang }}" = 22 ]; then nix_shell=./bix#clang; fi
+          export SOURCE_MODE="${{ matrix.source }}"
+          # shellcheck disable=SC2016
+          nix develop "$nix_shell" --system aarch64-darwin \
+            --override-input nixpkgs github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b \
+            --command bash -euc '
+            set -xo pipefail
+            if [ "$SOURCE_MODE" = static ]; then
+              sed -i "s/^inline const /static const /" bitcoin/src/wallet/wallet.h
+            fi
+            cmake --preset darwin -S bitcoin
+            cmake --build bitcoin/build --parallel 3
+            bitcoin/build/bin/bitcoind -version
+          '
+
+  reproducer:
+    name: Minimal inline-map reproducer with Clang ${{ matrix.clang }}
+    runs-on: macos-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        clang: [21, 22]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: bitcoin-dev-tools/bix
+          ref: b0ff4bac97eeacddd37f6f7b97409a4a2919de50
+          path: bix
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+          extra-conf: |
+            lazy-trees = true
+            fallback = true
+            extra-platforms = x86_64-darwin
+      - name: Compile reproducer
+        run: |
+          nix_shell=./bix
+          if [ "${{ matrix.clang }}" = 22 ]; then nix_shell=./bix#clang; fi
+          # shellcheck disable=SC2016
+          nix develop "$nix_shell" --system aarch64-darwin \
+            --override-input nixpkgs github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b \
+            --command bash -euc '
+            set -exo pipefail
+            mkdir repro
+            printf "%s\n" \
+              "#include <map>" \
+              "#include <string>" \
+              "inline const std::map<int, std::string> A{{1, \"x\"}};" \
+              "inline const std::map<std::string, int> B{{A.at(1), 1}};" \
+              > repro/maps.h
+            printf "%s\n" "#include \"maps.h\"" "int main() {}" > repro/a.cpp
+            printf "%s\n" "#include \"maps.h\"" > repro/b.cpp
+            clang++ -std=c++17 -O2 -arch arm64 -isysroot "$SDKROOT" \
+              -mmacosx-version-min=14.0 repro/a.cpp repro/b.cpp -o repro/maps
+            repro/maps
+          '
