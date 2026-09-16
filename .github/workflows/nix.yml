@@ -26,12 +26,12 @@ jobs:
         include:
           - system: x86_64-linux
             runner_label: ubuntu-latest
-            toolchain: clang
+            toolchain: gcc
             devshell: ./bix
             cmake_preset: default
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
-            toolchain: clang
+            toolchain: gcc
             devshell: ./bix
             cmake_preset: default
           - system: aarch64-linux
@@ -47,8 +47,8 @@ jobs:
             cmake_preset: default
           - system: aarch64-darwin
             runner_label: macos-latest
-            toolchain: clang
-            devshell: ./bix
+            toolchain: clang-lld
+            devshell: ./bix#clang
             cmake_preset: darwin
 
     env:
@@ -106,12 +106,12 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run `nix flake update`
-        if: matrix.devshell == './bix'
+        if: matrix.devshell == './bix' || matrix.devshell == './bix#clang'
         working-directory: bix
         run: nix flake update
 
       - name: Run `nix flake check`
-        if: matrix.devshell == './bix'
+        if: matrix.devshell == './bix' || matrix.devshell == './bix#clang'
         working-directory: bix
         run: nix flake check
 
