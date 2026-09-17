@@ -54,7 +54,7 @@ jobs:
               "inline const std::map<std::string, Flag> B{{A.at(Flag::A), Flag::A}};" \
               > repro/maps.h
             clang++ --version
-            ld -v
+            ld -v || true
             common_flags=(-std=c++17 -O2 -g -fvisibility-inlines-hidden \
               -arch arm64 -isysroot "$SDKROOT" -mmacosx-version-min=14.0 \
               -Wl,-dead_strip -Wl,-dead_strip_dylibs -fstack-protector-all \
