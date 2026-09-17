@@ -1,0 +1,76 @@
+name: TEMPORARY nightly run for Bitcoin PR 36285
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  macos:
+    name: nixpkgs (aarch64-darwin, clang-lld)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CDASH_BUILD_NAME_PREFIX: nixpkgs-pr-36285
+      CTEST_CMAKE_GENERATOR: Ninja
+      CTEST_CONFIGURE_PRESET: darwin
+
+    steps:
+      - name: Checkout nightly repository
+        uses: actions/checkout@v6
+
+      - name: Checkout Bix
+        uses: actions/checkout@v6
+        with:
+          repository: bitcoin-dev-tools/bix
+          path: bix
+          fetch-depth: 1
+
+      - name: Checkout Bitcoin master with PR 36285 merged
+        uses: actions/checkout@v6
+        with:
+          repository: bitcoin/bitcoin
+          ref: refs/pull/36285/merge
+          path: bitcoin
+          fetch-depth: 1
+
+      - name: Record Bitcoin revision
+        run: git -C bitcoin show -s --format=fuller HEAD
+
+      - name: Cache ccache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-aarch64-darwin-pr-36285-${{ github.run_id }}
+          restore-keys: |
+            ccache-aarch64-darwin-
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+          extra-conf: |
+            lazy-trees = true
+            fallback = true
+            extra-platforms = x86_64-darwin
+
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: nix-dev-shell
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build and test
+        run: |
+          # shellcheck disable=SC2016
+          nix develop ./bix#clang --system aarch64-darwin --command bash -c '
+            set -eux
+            export CCACHE_DIR="$GITHUB_WORKSPACE/.ccache"
+            ctest --verbose -S ./scripts/build-unit-test.cmake \
+              -DCTEST_SOURCE_DIRECTORY=./bitcoin \
+              -DCTEST_SITE="$GITHUB_REPOSITORY" \
+              -DCTEST_BUILD_NAME="nixpkgs-pr-36285"
+          '
