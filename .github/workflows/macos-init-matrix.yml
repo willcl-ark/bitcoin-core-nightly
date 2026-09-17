@@ -72,7 +72,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        clang: [21, 22]
+        include:
+          - clang: 21
+            shell: ./bix
+            nixpkgs: github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b
+          - clang: 22
+            shell: ./bix#clang
+            nixpkgs: github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b
+          - clang: 23
+            shell: ./bix#clang
+            nixpkgs: github:NixOS/nixpkgs/nixos-unstable
     steps:
       - uses: actions/checkout@v6
         with:
@@ -88,11 +97,10 @@ jobs:
             extra-platforms = x86_64-darwin
       - name: Compile reproducer
         run: |
-          nix_shell=./bix
-          if [ "${{ matrix.clang }}" = 22 ]; then nix_shell=./bix#clang; fi
+          nix_shell="${{ matrix.shell }}"
           # shellcheck disable=SC2016
           nix develop "$nix_shell" --system aarch64-darwin \
-            --override-input nixpkgs github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b \
+            --override-input nixpkgs "${{ matrix.nixpkgs }}" \
             --command bash -euc '
             set -exo pipefail
             mkdir repro
@@ -104,7 +112,23 @@ jobs:
               > repro/maps.h
             printf "%s\n" "#include \"maps.h\"" "int main() {}" > repro/a.cpp
             printf "%s\n" "#include \"maps.h\"" > repro/b.cpp
-            clang++ -std=c++17 -O2 -arch arm64 -isysroot "$SDKROOT" \
-              -mmacosx-version-min=14.0 repro/a.cpp repro/b.cpp -o repro/maps
-            repro/maps
+            clang++ --version
+            ld -v
+            common_flags=(-std=c++17 -O2 -g -fvisibility-inlines-hidden \
+              -arch arm64 -isysroot "$SDKROOT" -mmacosx-version-min=14.0 \
+              -Wl,-dead_strip -Wl,-dead_strip_dylibs -fstack-protector-all \
+              -Wl,-fixup_chains -fPIE -Xlinker -pie)
+            clang++ "${common_flags[@]}" repro/a.cpp repro/b.cpp -o repro/maps-nix
+            set +e
+            repro/maps-nix
+            nix_status=$?
+            clang++ "${common_flags[@]}" -fuse-ld=/usr/bin/ld \
+              repro/a.cpp repro/b.cpp -o repro/maps-apple
+            repro/maps-apple
+            apple_status=$?
+            set -e
+            echo "Nix linker status: $nix_status"
+            echo "Apple linker status: $apple_status"
+            test "$apple_status" -eq 0
+            test "$nix_status" -ne 0
           '
