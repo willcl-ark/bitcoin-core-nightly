@@ -7,64 +7,6 @@ permissions:
   contents: read
 
 jobs:
-  matrix:
-    name: ${{ matrix.source }} source with Clang ${{ matrix.clang }}
-    runs-on: macos-latest
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        source: [inline, static]
-        clang: [21, 22]
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          path: nightly
-      - uses: actions/checkout@v6
-        with:
-          repository: bitcoin-dev-tools/bix
-          ref: b0ff4bac97eeacddd37f6f7b97409a4a2919de50
-          path: bix
-
-      - uses: actions/checkout@v6
-        with:
-          repository: bitcoin/bitcoin
-          ref: fc4f35fdce4d65696be6bf34003dbcac1f2f64bf
-          path: bitcoin
-
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          determinate: true
-          extra-conf: |
-            lazy-trees = true
-            fallback = true
-            extra-platforms = x86_64-darwin
-
-      - name: Set up Cachix
-        uses: cachix/cachix-action@v15
-        with:
-          name: nix-dev-shell
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - name: Build and run
-        run: |
-          nix_shell=./bix
-          if [ "${{ matrix.clang }}" = 22 ]; then nix_shell=./bix#clang; fi
-          export SOURCE_MODE="${{ matrix.source }}"
-          # shellcheck disable=SC2016
-          nix develop "$nix_shell" --system aarch64-darwin \
-            --override-input nixpkgs github:NixOS/nixpkgs/d6524aaca2ff07876657ae2b323f24be4874944b \
-            --command bash -euc '
-            set -xo pipefail
-            if [ "$SOURCE_MODE" = static ]; then
-              sed -i "s/^inline const /static const /" bitcoin/src/wallet/wallet.h
-            fi
-            cp nightly/CMakeUserPresets.json bitcoin/CMakeUserPresets.json
-            cmake --preset darwin -S bitcoin
-            cmake --build bitcoin/build --parallel 3
-            bitcoin/build/bin/bitcoind -version
-          '
-
   reproducer:
     name: Minimal inline-map reproducer with Clang ${{ matrix.clang }}
     runs-on: macos-latest
@@ -107,28 +49,37 @@ jobs:
             printf "%s\n" \
               "#include <map>" \
               "#include <string>" \
-              "inline const std::map<int, std::string> A{{1, \"x\"}};" \
-              "inline const std::map<std::string, int> B{{A.at(1), 1}};" \
+              "enum class Flag { A };" \
+              "inline const std::map<Flag, std::string> A{{Flag::A, \"x\"}};" \
+              "inline const std::map<std::string, Flag> B{{A.at(Flag::A), Flag::A}};" \
               > repro/maps.h
-            printf "%s\n" "#include \"maps.h\"" "int main() {}" > repro/a.cpp
-            printf "%s\n" "#include \"maps.h\"" > repro/b.cpp
             clang++ --version
             ld -v
             common_flags=(-std=c++17 -O2 -g -fvisibility-inlines-hidden \
               -arch arm64 -isysroot "$SDKROOT" -mmacosx-version-min=14.0 \
               -Wl,-dead_strip -Wl,-dead_strip_dylibs -fstack-protector-all \
               -Wl,-fixup_chains -fPIE -Xlinker -pie)
-            clang++ "${common_flags[@]}" repro/a.cpp repro/b.cpp -o repro/maps-nix
-            set +e
-            repro/maps-nix
-            nix_status=$?
-            clang++ "${common_flags[@]}" -fuse-ld=/usr/bin/ld \
-              repro/a.cpp repro/b.cpp -o repro/maps-apple
-            repro/maps-apple
-            apple_status=$?
-            set -e
-            echo "Nix linker status: $nix_status"
-            echo "Apple linker status: $apple_status"
-            test "$apple_status" -eq 0
-            test "$nix_status" -ne 0
+            first_failure=0
+            for count in 2 4 8 16 32 64 128; do
+              rm -f repro/tu*.cpp repro/maps.cpp repro/maps
+              for i in $(seq 1 "$count"); do
+                printf "%s\n" "#include \"maps.h\"" \
+                  "std::string filler_$i = \"$i\";" > "repro/tu$i.cpp"
+              done
+              printf "%s\n" "#include \"maps.h\"" \
+                "int main() { return B.size() != 1; }" > repro/maps.cpp
+              clang++ "${common_flags[@]}" repro/tu*.cpp repro/maps.cpp \
+                -o repro/maps
+              set +e
+              repro/maps
+              status=$?
+              set -e
+              echo "translation units: $count, status: $status"
+              if [ "$status" -ne 0 ]; then
+                first_failure=$count
+                break
+              fi
+            done
+            test "$first_failure" -ne 0
+            echo "first failing translation-unit count: $first_failure"
           '
