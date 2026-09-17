@@ -6,6 +6,12 @@ on:
       - master
   pull_request:
   workflow_dispatch:
+    inputs:
+      bitcoin_pr:
+        description: Optional bitcoin/bitcoin PR number to test as a merge into master
+        required: false
+        type: string
+        default: ''
   schedule:
     - cron: '0 0 * * *'
 
@@ -73,6 +79,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: bitcoin/bitcoin
+          ref: ${{ inputs.bitcoin_pr != '' && format('refs/pull/{0}/merge', inputs.bitcoin_pr) || '' }}
           path: bitcoin
           fetch-depth: 1
 
