@@ -1,4 +1,4 @@
-name: Build using `bix` from nixpkgs
+name: Build with Nix
 
 on:
   push:
@@ -17,7 +17,7 @@ on:
 
 jobs:
   check:
-    name: nixpkgs (${{ matrix.system }}, ${{ matrix.toolchain }})
+    name: ${{ matrix.configuration }} (${{ matrix.system }})
     runs-on: ${{ matrix.runner_label }}
     outputs:
       bitcoin-commit: ${{ steps.bitcoin-commit.outputs.commit }}
@@ -32,34 +32,38 @@ jobs:
         include:
           - system: x86_64-linux
             runner_label: ubuntu-latest
-            toolchain: gcc
+            configuration: Bix default (GCC)
             devshell: ./bix
+            build_name_suffix: bix-default
             cmake_preset: default
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
-            toolchain: gcc
+            configuration: Bix default (GCC)
             devshell: ./bix
+            build_name_suffix: bix-default
             cmake_preset: default
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
-            toolchain: clang-strict-align-ubsan
+            configuration: Clang (strict-align UBSan)
             devshell: .#clang-sanitizer
             build_name_suffix: strict-align-ubsan
             cmake_preset: strict-align-ubsan
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
-            toolchain: gcc
+            configuration: GCC (nightly flake)
             devshell: .#gcc
+            build_name_suffix: nightly-flake-gcc
             cmake_preset: default
           - system: aarch64-darwin
             runner_label: macos-latest
-            toolchain: clang-lld
+            configuration: Clang (Bix Darwin stdenv)
             devshell: ./bix#clang
+            build_name_suffix: bix-darwin-clang
             cmake_preset: darwin
 
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CDASH_BUILD_NAME_PREFIX: nixpkgs
+      CDASH_BUILD_NAME_PREFIX: nix
       CTEST_CMAKE_GENERATOR: Ninja
 
     steps:
@@ -130,7 +134,7 @@ jobs:
           nix develop ${{ matrix.devshell }} --system ${{ matrix.system }} --no-write-lock-file --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
-            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_SITE=${{ github.repository }}
+            ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_SITE=github-actions-${{ matrix.system }}
           "
 
   vulture:

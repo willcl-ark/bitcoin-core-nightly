@@ -26,7 +26,10 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
     COMMAND_ERROR_IS_FATAL ANY
 )
-if(compiler_version MATCHES "clang version ([0-9]+)")
+if(compiler_version MATCHES "Apple clang version ([0-9]+)")
+    set(compiler_id "apple-clang")
+    set(compiler_major "${CMAKE_MATCH_1}")
+elseif(compiler_version MATCHES "clang version ([0-9]+)")
     set(compiler_id "clang")
     set(compiler_major "${CMAKE_MATCH_1}")
 elseif(compiler_version MATCHES "gcc \\(GCC\\) ([0-9]+)")
