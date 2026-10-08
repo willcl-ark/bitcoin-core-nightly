@@ -87,6 +87,9 @@ jobs:
           path: bitcoin
           fetch-depth: 1
 
+      - name: Add Cap'n Proto generator failure diagnostics
+        run: git -C bitcoin apply "${{ github.workspace }}/scripts/mpgen-failure-status.patch"
+
       - name: Get Bitcoin commit hash
         id: bitcoin-commit
         run: |

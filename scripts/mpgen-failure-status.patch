@@ -1,0 +1,23 @@
+diff --git a/src/ipc/libmultiprocess/src/mp/gen.cpp b/src/ipc/libmultiprocess/src/mp/gen.cpp
+--- a/src/ipc/libmultiprocess/src/mp/gen.cpp
++++ b/src/ipc/libmultiprocess/src/mp/gen.cpp
+@@ -28,6 +28,7 @@
+ #include <stdexcept>
+ #include <string>
+ #include <system_error>
++#include <sys/wait.h>
+ #include <unistd.h>
+ #include <utility>
+ #include <vector>
+@@ -292,4 +293,11 @@ static void Generate(kj::StringPtr src_prefix,
+     const int status = mp::WaitProcess(pid);
+     if (status) {
++        if (WIFEXITED(status)) {
++            std::cerr << "Cap'n Proto compiler exited with status " << WEXITSTATUS(status) << '\n';
++        } else if (WIFSIGNALED(status)) {
++            std::cerr << "Cap'n Proto compiler terminated with signal " << WTERMSIG(status) << '\n';
++        } else {
++            std::cerr << "Cap'n Proto compiler returned wait status " << status << '\n';
++        }
+         throw std::runtime_error("Invoking " capnp_PREFIX "/bin/capnp failed");
+     }

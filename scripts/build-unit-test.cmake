@@ -30,6 +30,7 @@ endif()
 set(CTEST_NOTES_FILES)
 list(APPEND CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
 list(APPEND CTEST_NOTES_FILES "${ctest_source_presets_file}")
+list(APPEND CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_DIR}/mpgen-failure-status.patch")
 
 set(ctest_configure_options "--preset ${ctest_configure_preset}")
 
