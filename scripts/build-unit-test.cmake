@@ -54,6 +54,9 @@ list(REMOVE_DUPLICATES CTEST_NOTES_FILES)
 ctest_submit(PARTS "Configure" "Notes")
 set(CTEST_NOTES_FILES)
 
+# Ninja failures in custom commands (such as source generation) are not
+# necessarily recognized by CTest's compiler error patterns.
+list(APPEND CTEST_CUSTOM_ERROR_MATCH "FAILED: \\[code=[0-9]+\\]")
 ctest_build(BUILD ${CTEST_BINARY_DIRECTORY} RETURN_VALUE ctest_build_result)
 set(ctest_build_submit_parts "Build")
 if(NOT ctest_build_result EQUAL 0)
@@ -64,6 +67,10 @@ if(NOT ctest_build_result EQUAL 0)
 endif()
 ctest_submit(PARTS ${ctest_build_submit_parts})
 set(CTEST_NOTES_FILES)
+if(NOT ctest_build_result EQUAL 0)
+    ctest_submit(PARTS "Done")
+    message(FATAL_ERROR "Build failed with return value ${ctest_build_result}")
+endif()
 
 ctest_test(${ctest_test_args} EXCLUDE "interface_ipc")
 ctest_submit(PARTS "Test")
