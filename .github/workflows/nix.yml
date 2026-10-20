@@ -162,15 +162,18 @@ jobs:
     if: failure() || cancelled()
     needs: [check, vulture]
     runs-on: ubuntu-latest
+    outputs:
+      issue-number: ${{ steps.issue.outputs.number }}
     permissions:
       issues: write
     steps:
       - name: Create failure issue
+        id: issue
         run: |
           BITCOIN_COMMIT="${{ needs.check.outputs.bitcoin-commit }}"
           BITCOIN_COMMIT_SHORT="${BITCOIN_COMMIT:0:7}"
 
-          gh issue create \
+          ISSUE_URL=$(gh issue create \
             --label "ci-failure" \
             --title "Nightly CI Failure - $(date +%Y-%m-%d)" \
             --body "**Nightly CI Build Failed**
@@ -182,6 +185,23 @@ jobs:
             **Bitcoin Commit:** [\`${BITCOIN_COMMIT_SHORT}\`](https://github.com/bitcoin/bitcoin/commit/${BITCOIN_COMMIT})
 
             cc: @willcl-ark" \
-            --repo ${{ github.repository }}
+            --repo ${{ github.repository }})
+          echo "number=${ISSUE_URL##*/}" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
+
+  diagnose-failure:
+    if: >-
+      always() && needs.notify-failure.result == 'success' &&
+      github.event_name != 'pull_request'
+    needs: [check, notify-failure]
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    uses: ./.github/workflows/codex.yml
+    with:
+      issue-number: ${{ needs.notify-failure.outputs.issue-number }}
+      bitcoin-commit: ${{ needs.check.outputs.bitcoin-commit }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
