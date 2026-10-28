@@ -54,7 +54,7 @@ jobs:
           jq -r 'select(.conclusion == "failure" or .conclusion == "cancelled") | .id' \
             ci-evidence/jobs.jsonl > ci-evidence/failed-job-ids.txt
           while read -r job_id; do
-            if ! gh api "repos/$GH_REPO/actions/jobs/$job_id/logs" \
+            if ! gh api "repos/$GH_REPO/actions/jobs/$job_id/logs" --allow-escape-sequences \
                 > "ci-evidence/job-$job_id.log"; then
               echo "Logs unavailable for job $job_id" >> ci-evidence/missing-logs.txt
             fi
