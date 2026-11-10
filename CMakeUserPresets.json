@@ -7,8 +7,15 @@
       "binaryDir": "${sourceDir}/build"
     },
     {
-      "name": "darwin",
+      "name": "bix",
       "inherits": "default",
+      "cacheVariables": {
+        "WITH_CCACHE": "OFF"
+      }
+    },
+    {
+      "name": "darwin",
+      "inherits": "bix",
       "cacheVariables": {
         "WITH_USDT": "OFF"
       }

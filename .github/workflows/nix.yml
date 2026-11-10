@@ -35,13 +35,13 @@ jobs:
             configuration: Bix default (GCC)
             devshell: ./bix
             build_name_suffix: bix-default
-            cmake_preset: default
+            cmake_preset: bix
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             configuration: Bix default (GCC)
             devshell: ./bix
             build_name_suffix: bix-default
-            cmake_preset: default
+            cmake_preset: bix
           - system: aarch64-linux
             runner_label: ubuntu-24.04-arm
             configuration: Clang (strict-align UBSan)
@@ -97,9 +97,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ matrix.system }}-${{ github.run_id }}
+          key: ccache-v2-${{ matrix.system }}-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ matrix.system }}-
+            ccache-v2-${{ matrix.system }}-
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
