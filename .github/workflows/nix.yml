@@ -107,7 +107,7 @@ jobs:
           determinate: true
           extra-conf: |
             lazy-trees = true
-            fallback = true
+            fallback = false
             extra-platforms = x86_64-darwin
 
       - name: Set Up Cachix
@@ -126,12 +126,26 @@ jobs:
         working-directory: bix
         run: nix flake check
 
+      - name: Prepare Nix development shell
+        run: |
+          for attempt in 1 2 3; do
+            if nix develop ${{ matrix.devshell }} --system ${{ matrix.system }} --no-write-lock-file --profile "$RUNNER_TEMP/nightly-devshell" --command true; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Nix development shell preparation failed after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::Nix development shell preparation failed; retrying in $((attempt * 30)) seconds"
+            sleep "$((attempt * 30))"
+          done
+
       - name: Build and test
         env:
           CDASH_BUILD_NAME_SUFFIX: ${{ matrix.build_name_suffix }}
           CTEST_CONFIGURE_PRESET: ${{ matrix.cmake_preset }}
         run: |
-          nix develop ${{ matrix.devshell }} --system ${{ matrix.system }} --no-write-lock-file --command bash -c "
+          nix develop "$RUNNER_TEMP/nightly-devshell" --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
             ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_SITE=github-actions-${{ matrix.system }}
