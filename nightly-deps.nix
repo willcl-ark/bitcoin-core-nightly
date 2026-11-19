@@ -8,19 +8,22 @@ let
   nightlyVersion = src: "0-unstable-${src.shortRev or "snapshot"}";
 in
 rec {
-  # Upstream CMake lacks the nixpkgs patch that reads NIXPKGS_CMAKE_PREFIX_PATH,
-  # so expose shell inputs through the standard CMAKE_PREFIX_PATH instead.
+  # Kitware's nightly binary, as CMake master changes daily and would otherwise
+  # be rebuilt on every run. It lacks the nixpkgs patch that reads
+  # NIXPKGS_CMAKE_PREFIX_PATH, so expose shell inputs through the standard
+  # CMAKE_PREFIX_PATH instead.
   cmake = stdenv.mkDerivation {
     pname = "cmake";
-    version = nightlyVersion inputs.cmake-src;
-    src = inputs.cmake-src;
-    nativeBuildInputs = [ pkgs.cmake pkgs.ninja ];
-    # CTest submits dashboards to CDash over HTTPS.
-    buildInputs = [ pkgs.openssl ];
-    cmakeFlags = [
-      "-DBUILD_TESTING=OFF"
-      "-DBUILD_CursesDialog=OFF"
-    ];
+    version = nightlyVersion inputs.cmake-bin;
+    src = inputs.cmake-bin;
+    nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+    dontConfigure = true;
+    dontBuild = true;
+    # cmake-gui needs X11 libraries and is never used here.
+    installPhase = ''
+      cp -r . $out
+      rm $out/bin/cmake-gui
+    '';
     setupHook = pkgs.writeText "cmake-nightly-setup-hook.sh" ''
       addCMakePrefixPath() {
         addToSearchPath CMAKE_PREFIX_PATH "$1"

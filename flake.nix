@@ -10,8 +10,8 @@
       url = "github:capnproto/capnproto/release-1.5.0";
       flake = false;
     };
-    cmake-src = {
-      url = "github:Kitware/CMake/master";
+    cmake-bin = {
+      url = "https://cmake.org/files/dev/cmake-4.5.20261118-g9aa6566-linux-x86_64.tar.gz";
       flake = false;
     };
     pkgconf-src = {

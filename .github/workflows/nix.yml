@@ -133,8 +133,8 @@ jobs:
         working-directory: bix
         run: nix flake check
 
-      # Boost's develop snapshot is named after its next release, so find the
-      # newest one before updating the remaining inputs to their branch heads.
+      # The Boost and CMake snapshots have no "latest" alias, so find the newest
+      # ones before updating the remaining inputs to their branch heads.
       - name: Update nightly dependency sources
         if: matrix.devshell == '.#nightly-deps'
         run: |
@@ -142,6 +142,9 @@ jobs:
           boost_snapshot=$(curl -fsSL --retry 5 https://archives.boost.io/develop/ \
             | grep -oE 'boost_[0-9_]+-snapshot\.tar\.gz' | sort -uV | tail -1)
           sed -i "s|boost_[0-9_]*-snapshot\.tar\.gz|${boost_snapshot}|" flake.nix
+          cmake_snapshot=$(curl -fsSL --retry 5 https://cmake.org/files/dev/ \
+            | grep -oE 'cmake-[0-9.]+-g[0-9a-f]+-linux-x86_64\.tar\.gz' | sort -uV | tail -1)
+          sed -i "s|cmake-[0-9.]*-g[0-9a-f]*-linux-x86_64\.tar\.gz|${cmake_snapshot}|" flake.nix
           nix flake update
           nix flake metadata | tee "$RUNNER_TEMP/nightly-deps-inputs.txt"
           echo "CTEST_EXTRA_NOTES_FILES=$RUNNER_TEMP/nightly-deps-inputs.txt" >> "$GITHUB_ENV"
