@@ -118,11 +118,10 @@ jobs:
             fallback = false
             extra-platforms = x86_64-darwin
 
-      - name: Set Up Cachix
-        uses: cachix/cachix-action@v15
+      - name: Configure niks3 cache
+        uses: Mic92/niks3-action@v1
         with:
-          name: nix-dev-shell
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          server-url: https://cache.nix.fish.foo
 
       - name: Run `nix flake update`
         if: matrix.devshell == './bix' || matrix.devshell == './bix#clang'
