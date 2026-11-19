@@ -56,6 +56,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/write-build-config-note.cmake")
 list(REMOVE_DUPLICATES CTEST_NOTES_FILES)
 ctest_submit(PARTS "Configure" "Notes")
 set(CTEST_NOTES_FILES)
+if(NOT ctest_configure_result EQUAL 0)
+    ctest_submit(PARTS "Done")
+    message(FATAL_ERROR "Configure failed with return value ${ctest_configure_result}")
+endif()
 
 # Ninja failures in custom commands (such as source generation) are not
 # necessarily recognized by CTest's compiler error patterns.
