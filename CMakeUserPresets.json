@@ -21,6 +21,17 @@
       }
     },
     {
+      "name": "nightly-deps",
+      "inherits": "default",
+      "errors": {
+        "dev": true
+      },
+      "cacheVariables": {
+        "CMAKE_COMPILE_WARNING_AS_ERROR": "ON",
+        "WITH_ZMQ": "ON"
+      }
+    },
+    {
       "name": "strict-align-ubsan",
       "inherits": "default",
       "cacheVariables": {

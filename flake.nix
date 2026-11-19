@@ -1,8 +1,35 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    boost-src = {
+      url = "https://archives.boost.io/develop/boost_1_93_0-snapshot.tar.gz";
+      flake = false;
+    };
+    capnproto-src = {
+      url = "github:capnproto/capnproto/release-1.5.0";
+      flake = false;
+    };
+    cmake-src = {
+      url = "github:Kitware/CMake/master";
+      flake = false;
+    };
+    pkgconf-src = {
+      url = "github:pkgconf/pkgconf/main";
+      flake = false;
+    };
+    sqlite-src = {
+      url = "github:sqlite/sqlite/master";
+      flake = false;
+    };
+    zeromq-src = {
+      url = "github:zeromq/libzmq/master";
+      flake = false;
+    };
+  };
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, ... }@inputs:
     let
       systems = [
         "x86_64-linux"
@@ -18,6 +45,7 @@
           lib = pkgs.lib;
           isLinux = pkgs.stdenv.hostPlatform.isLinux;
           llvm = pkgs.llvmPackages_latest;
+          nightly = import ./nightly-deps.nix { inherit pkgs inputs; };
           cmake = if system == "x86_64-linux" then
             pkgs.stdenvNoCC.mkDerivation rec {
               pname = "kitware-cmake-bin";
@@ -90,6 +118,23 @@
               export CC=clang
               export CXX=clang++
             '';
+          };
+
+          nightly-deps = pkgs.mkShell {
+            nativeBuildInputs = [
+              pkgs.ccache
+              nightly.cmake
+              pkgs.ninja
+              nightly.pkgconf
+              pkgs.python316
+            ];
+
+            buildInputs = [
+              nightly.boost
+              nightly.capnproto
+              nightly.sqlite
+              nightly.zeromq
+            ];
           };
         }
       );

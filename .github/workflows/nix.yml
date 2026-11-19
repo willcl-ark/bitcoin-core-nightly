@@ -54,6 +54,12 @@ jobs:
             devshell: .#gcc
             build_name_suffix: nightly-flake-gcc
             cmake_preset: default
+          - system: x86_64-linux
+            runner_label: ubuntu-latest
+            configuration: Nightly dependencies (GCC)
+            devshell: .#nightly-deps
+            build_name_suffix: nightly-deps
+            cmake_preset: nightly-deps
           - system: aarch64-darwin
             runner_label: macos-latest
             configuration: Clang (Bix Darwin stdenv)
@@ -125,6 +131,19 @@ jobs:
         if: matrix.devshell == './bix' || matrix.devshell == './bix#clang'
         working-directory: bix
         run: nix flake check
+
+      # Boost's develop snapshot is named after its next release, so find the
+      # newest one before updating the remaining inputs to their branch heads.
+      - name: Update nightly dependency sources
+        if: matrix.devshell == '.#nightly-deps'
+        run: |
+          set -euo pipefail
+          boost_snapshot=$(curl -fsSL --retry 5 https://archives.boost.io/develop/ \
+            | grep -oE 'boost_[0-9_]+-snapshot\.tar\.gz' | sort -uV | tail -1)
+          sed -i "s|boost_[0-9_]*-snapshot\.tar\.gz|${boost_snapshot}|" flake.nix
+          nix flake update
+          nix flake metadata | tee "$RUNNER_TEMP/nightly-deps-inputs.txt"
+          echo "CTEST_EXTRA_NOTES_FILES=$RUNNER_TEMP/nightly-deps-inputs.txt" >> "$GITHUB_ENV"
 
       - name: Prepare Nix development shell
         run: |
