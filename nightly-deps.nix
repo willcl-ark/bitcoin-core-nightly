@@ -15,10 +15,11 @@ rec {
     version = nightlyVersion inputs.cmake-src;
     src = inputs.cmake-src;
     nativeBuildInputs = [ pkgs.cmake pkgs.ninja ];
+    # CTest submits dashboards to CDash over HTTPS.
+    buildInputs = [ pkgs.openssl ];
     cmakeFlags = [
       "-DBUILD_TESTING=OFF"
       "-DBUILD_CursesDialog=OFF"
-      "-DCMAKE_USE_OPENSSL=OFF"
     ];
     setupHook = pkgs.writeText "cmake-nightly-setup-hook.sh" ''
       addCMakePrefixPath() {
