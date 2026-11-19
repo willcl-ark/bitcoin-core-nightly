@@ -30,6 +30,9 @@ endif()
 set(CTEST_NOTES_FILES)
 list(APPEND CTEST_NOTES_FILES "${CMAKE_CURRENT_LIST_FILE}")
 list(APPEND CTEST_NOTES_FILES "${ctest_source_presets_file}")
+if(DEFINED ENV{CTEST_EXTRA_NOTES_FILES})
+    list(APPEND CTEST_NOTES_FILES $ENV{CTEST_EXTRA_NOTES_FILES})
+endif()
 
 set(ctest_configure_options "--preset ${ctest_configure_preset}")
 
