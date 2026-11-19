@@ -69,6 +69,8 @@ jobs:
 
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
+      # Keeps every job's cache within the repository's Actions cache quota.
+      CCACHE_MAXSIZE: 1G
       CDASH_BUILD_NAME_PREFIX: nix
       CTEST_CMAKE_GENERATOR: Ninja
 
@@ -103,9 +105,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-v2-${{ matrix.system }}-${{ github.run_id }}
+          key: ccache-v3-${{ matrix.system }}-${{ matrix.build_name_suffix }}-${{ github.run_id }}
           restore-keys: |
-            ccache-v2-${{ matrix.system }}-
+            ccache-v3-${{ matrix.system }}-${{ matrix.build_name_suffix }}-
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -167,6 +169,7 @@ jobs:
           nix develop "$RUNNER_TEMP/nightly-devshell" --command bash -c "
             set -eux
             export CCACHE_DIR=${{ env.CCACHE_DIR }}
+            export CCACHE_MAXSIZE=${{ env.CCACHE_MAXSIZE }}
             ctest --verbose -S ./scripts/build-unit-test.cmake -DCTEST_SOURCE_DIRECTORY=./bitcoin -DCTEST_SITE=github-actions-${{ matrix.system }}
           "
 
