@@ -1,0 +1,20 @@
+Avoid a bogus GCC 16 -Wstringop-overflow error in Boost.MultiIndex.
+
+GCC isolates an impossible path where the bucket array has SIZE_MAX buckets
+and turns the loop into an oversized memset. With x<y the loop does not run on
+that path. Both forms visit the same buckets on every possible path.
+
+Remove once GCC or Boost fixes this.
+Report: https://gist.github.com/willcl-ark/36924de7cd7e37cda3c0923955614d7e
+
+--- a/boost/multi_index/detail/bucket_array.hpp
++++ b/boost/multi_index/detail/bucket_array.hpp
+@@ -162,7 +162,7 @@ public:
+ 
+   void clear(pointer end_)
+   {
+-    for(base_pointer x=begin(),y=end();x!=y;++x)x->prior()=pointer(0);
++    for(base_pointer x=begin(),y=end();x<y;++x)x->prior()=pointer(0);
+     end()->prior()=end_->prior()=end_;
+     end_->next()=end();
+  }

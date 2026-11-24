@@ -149,6 +149,10 @@ jobs:
           nix flake metadata | tee "$RUNNER_TEMP/nightly-deps-inputs.txt"
           echo "CTEST_EXTRA_NOTES_FILES=$RUNNER_TEMP/nightly-deps-inputs.txt" >> "$GITHUB_ENV"
 
+      - name: Warn about temporary Boost patch
+        if: matrix.devshell == '.#nightly-deps' && hashFiles('patches/boost-multi_index-gcc16-stringop-overflow.patch') != ''
+        run: echo "::warning file=patches/boost-multi_index-gcc16-stringop-overflow.patch,title=Temporary Boost patch::Boost.MultiIndex is patched to avoid a bogus GCC 16 -Wstringop-overflow error. Remove the patch once GCC or Boost fixes it."
+
       - name: Prepare Nix development shell
         run: |
           for attempt in 1 2 3; do

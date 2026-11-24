@@ -76,6 +76,7 @@ rec {
     pname = "boost";
     version = nightlyVersion inputs.boost-src;
     src = inputs.boost-src;
+    patches = [ ./patches/boost-multi_index-gcc16-stringop-overflow.patch ];
     nativeBuildInputs = [ pkgs.which ];
     configurePhase = ''
       patchShebangs bootstrap.sh tools/build/src/engine
