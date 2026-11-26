@@ -5,7 +5,7 @@ and turns the loop into an oversized memset. With x<y the loop does not run on
 that path. Both forms visit the same buckets on every possible path.
 
 Remove once GCC or Boost fixes this.
-Report: https://gist.github.com/willcl-ark/36924de7cd7e37cda3c0923955614d7e
+Report: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=129070
 
 --- a/boost/multi_index/detail/bucket_array.hpp
 +++ b/boost/multi_index/detail/bucket_array.hpp
